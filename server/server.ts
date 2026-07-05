@@ -1,9 +1,11 @@
+import './workers/aiWorker.js';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
 import authRoutes from './modules/auth/auth.routes.js';
 import jobRoutes from './modules/jobs/jobs.routes.js';
+import applicationRoutes from './modules/applications/applications.routes.js';
 
 dotenv.config();
 
@@ -15,6 +17,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use('/api/applications', applicationRoutes);
 
 app.get('/health', (req: Request, res: Response) => {
     res.status(200).json({ status: 'OK', service: 'HireFlow API' });
