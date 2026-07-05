@@ -1,4 +1,4 @@
-import './workers/aiWorker.js';
+import './workers/ai.worker.js';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
