@@ -1,11 +1,14 @@
 import { Redis } from 'ioredis';
 
-const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+
+// Connection instance dedicated for BullMQ/Workers
+export const redisConnection = new Redis(REDIS_URL, {
     maxRetriesPerRequest: null, 
 });
 
-redisConnection.on('error', (err) => {
-    console.error('Redis connection error:', err);
-});
+// instance for general caching and TTL slot locks
+export const redisClient = new Redis(REDIS_URL);
 
-export default redisConnection;
+redisConnection.on('error', (err) => console.error('Redis connection error (Queue):', err));
+redisClient.on('error', (err) => console.error('Redis connection error (Cache):', err));

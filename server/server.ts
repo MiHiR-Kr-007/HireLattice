@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import authRoutes from './modules/auth/auth.routes.js';
 import jobRoutes from './modules/jobs/jobs.routes.js';
 import applicationRoutes from './modules/applications/applications.routes.js';
+import schedulingRoutes from './modules/scheduling/scheduling.routes.js';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
+app.use('/api/scheduling', schedulingRoutes);
 
 app.get('/health', (req: Request, res: Response) => {
     res.status(200).json({ status: 'OK', service: 'HireFlow API' });
