@@ -36,3 +36,14 @@ CREATE TABLE availability_slots (
         tstzrange(start_time_utc, end_time_utc) WITH &&
     )
 );
+
+CREATE TYPE interview_status AS ENUM ('OFFERED', 'CONFIRMED', 'DECLINED', 'EXPIRED', 'COMPLETED');
+
+CREATE TABLE interviews (
+    id SERIAL PRIMARY KEY,
+    candidate_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    slot_id INTEGER REFERENCES availability_slots(id) ON DELETE CASCADE,
+    status interview_status DEFAULT 'OFFERED',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_active_slot UNIQUE (slot_id) WHERE (status = 'CONFIRMED' OR status = 'OFFERED')
+);
