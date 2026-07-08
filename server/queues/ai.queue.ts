@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq';
-import redisConnection from '../shared/redis.js';
+import { redisConnection } from '../shared/redis.js';
 
 export const AI_RANKING_QUEUE = 'ai-ranking-queue';
 
