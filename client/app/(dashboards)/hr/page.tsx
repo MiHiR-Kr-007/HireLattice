@@ -2,6 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JobPostingForm } from "@/components/hr/job-form";
+import { KanbanBoard } from "@/components/hr/kanban-board";
 
 export default function HRDashboard() {
     return (
@@ -21,14 +22,11 @@ export default function HRDashboard() {
                 </TabsList>
 
                 <TabsContent value="pipeline" className="mt-0">
-                    <div className="p-8 border-2 border-dashed rounded-xl flex items-center justify-center text-muted-foreground bg-card/50">
-                        Kanban Pipeline Loading...
-                    </div>
+                    <KanbanBoard /> 
                 </TabsContent>
 
                 <TabsContent value="post-job" className="mt-0">
-                    <JobPostingForm onSuccess={() => {
-                    }} />
+                    <JobPostingForm />
                 </TabsContent>
             </Tabs>
 
