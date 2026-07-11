@@ -25,7 +25,7 @@ class VectorService:
             with conn.cursor() as cursor:
                 cursor.execute("""
                     INSERT INTO job_embeddings (job_id, job_description, embedding)
-                    VALUES (%s, %s, %s)
+                    VALUES (%s, %s, %s::vector)
                     ON CONFLICT (job_id) 
                     DO UPDATE SET job_description = EXCLUDED.job_description, embedding = EXCLUDED.embedding;
                 """, (job_id, job_description, embedding))
@@ -43,7 +43,7 @@ class VectorService:
                 conn.close()
 
     async def find_similar_jobs(self, resume_text: str, limit: int = 3):
-        " a similarity search against stored JDs using cosine distance
+        " a similarity search against stored JDs using cosine distance"
         embedding = await self.embedding_provider.get_embedding(resume_text)
         if not embedding:
             return []
@@ -56,9 +56,9 @@ class VectorService:
             with conn.cursor() as cursor:
                 # calculate (1 - cosine_distance) to convert distance to a similarity percentage match
                 cursor.execute("""
-                    SELECT job_id, job_description, (1 - (embedding <=> %s)) AS similarity_score
+                    SELECT job_id, job_description, (1 - (embedding <=> %s::vector)) AS similarity_score
                     FROM job_embeddings
-                    ORDER BY embedding <=> %s
+                    ORDER BY embedding <=> %s::vector
                     LIMIT %s;
                 """, (embedding, embedding, limit))
                 

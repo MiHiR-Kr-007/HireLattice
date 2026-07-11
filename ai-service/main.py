@@ -2,10 +2,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
-from routers import rank
-from rag.db import DatabaseManager
 
 load_dotenv()
+from routers import rank
+from rag.db import DatabaseManager
 
 # event manager to execute tasks on startup
 @asynccontextmanager

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 from google import genai
+from google.genai import types
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,13 +16,14 @@ class BaseEmbeddingProvider(ABC):
 class GeminiEmbeddingProvider(BaseEmbeddingProvider):
     def __init__(self):
         self.client = genai.Client()
-        self.model_id = "text-embedding-004"
+        self.model_id = "gemini-embedding-2"
 
     async def get_embedding(self, text: str) -> List[float]:
         try:
             response = await self.client.aio.models.embed_content(
                 model=self.model_id,
-                contents=text
+                contents=text,
+                config=types.EmbedContentConfig(output_dimensionality=768)
             )
             return response.embeddings[0].values
             
