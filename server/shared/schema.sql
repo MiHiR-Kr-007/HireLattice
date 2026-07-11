@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 CREATE TYPE user_role AS ENUM ('HR', 'INTERVIEWER', 'CANDIDATE');
 CREATE TYPE application_status AS ENUM ('APPLIED', 'RANKED', 'SCHEDULED', 'INTERVIEWED', 'HIRED', 'REJECTED');
@@ -7,6 +8,7 @@ CREATE TYPE interview_status AS ENUM ('OFFERED', 'CONFIRMED', 'DECLINED', 'EXPIR
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255),
     role user_role NOT NULL,
@@ -18,7 +20,9 @@ CREATE TABLE jobs (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    embedding vector(1536), 
+    embedding vector(768), 
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    status VARCHAR(20) DEFAULT 'OPEN',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -71,8 +75,8 @@ CREATE TABLE interviews (
     slot_id INTEGER REFERENCES availability_slots(id) ON DELETE CASCADE,
     status interview_status DEFAULT 'OFFERED',
     feedback JSONB NULL, 
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Prevents multiple active interviews on the same slot
-    CONSTRAINT unique_active_slot UNIQUE (slot_id) WHERE (status = 'CONFIRMED' OR status = 'OFFERED')
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Prevents multiple active interviews on the same slot
+CREATE UNIQUE INDEX unique_active_slot ON interviews (slot_id) WHERE (status = 'CONFIRMED' OR status = 'OFFERED');

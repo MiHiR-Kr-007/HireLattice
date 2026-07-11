@@ -36,13 +36,12 @@ export const createJob = async (req: Request, res: Response): Promise<void> => {
         const jobResult = await client.query(insertJobQuery, [title, description, hrUserId]);
         const newJob = jobResult.rows[0];
 
-        const aiResponse = await fetch(`${AI_SERVICE_URL}/jobs`, {
+        const aiResponse = await fetch(`${AI_SERVICE_URL}/api/ai/jobs`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                job_id: newJob.id,
-                title: title,
-                description: description
+                job_id: newJob.id.toString(),
+                job_description: title + " - " + description
             })
         });
 
@@ -61,9 +60,9 @@ export const createJob = async (req: Request, res: Response): Promise<void> => {
     } catch (error: any) {
         await client.query('ROLLBACK');
         console.error('Transaction failed, rolled back:', error.message);
-        res.status(500).json({ 
-            error: 'Failed to create job', 
-            details: error instanceof Error ? error.message : 'Unknown error' 
+        res.status(500).json({
+            error: 'Failed to create job',
+            details: error instanceof Error ? error.message : 'Unknown error'
         });
     } finally {
         client.release();

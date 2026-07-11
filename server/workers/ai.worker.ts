@@ -1,12 +1,10 @@
 import { Worker, Job } from 'bullmq';
-import pdfParse from 'pdf-parse';
-import redisConnection from '../shared/redis.js';
+import { redisConnection } from '../shared/redis.js';
 import { pool } from '../shared/db.js';
 import { AI_RANKING_QUEUE } from '../queues/ai.queue.js';
+import { PDFParse } from 'pdf-parse';
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
-
-const parsePdf = pdfParse as unknown as (dataBuffer: Buffer) => Promise<any>;
 
 export const aiWorker = new Worker(AI_RANKING_QUEUE, async (job: Job) => {
     const { applicationId, jobId, fileUrl } = job.data;
@@ -15,19 +13,26 @@ export const aiWorker = new Worker(AI_RANKING_QUEUE, async (job: Job) => {
     try {
         const pdfResponse = await fetch(fileUrl);
         if (!pdfResponse.ok) {
-            throw new Error(`Failed to download resume from cloud storage: ${pdfResponse.statusText}`);
+            throw new Error(`HTTP ${pdfResponse.status} ${pdfResponse.statusText} - URL: ${fileUrl}`);
         }
         
         const arrayBuffer = await pdfResponse.arrayBuffer();
         const dataBuffer = Buffer.from(arrayBuffer);
 
-        const pdfData = await parsePdf(dataBuffer);
-        const resumeText = pdfData.text;
+        const parser = new PDFParse({ data: dataBuffer });
+        const textResult = await parser.getText();
+        const resumeText = textResult.text;
 
-        const aiResponse = await fetch(`${AI_SERVICE_URL}/rank`, {
+        const jobQuery = await pool.query('SELECT title, description FROM jobs WHERE id = $1', [jobId]);
+        if (jobQuery.rowCount === 0) {
+            throw new Error(`Job ${jobId} not found in database`);
+        }
+        const jobDescription = `${jobQuery.rows[0].title} - ${jobQuery.rows[0].description}`;
+
+        const aiResponse = await fetch(`${AI_SERVICE_URL}/api/ai/rank`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ job_id: jobId, resume_text: resumeText })
+            body: JSON.stringify({ job_description: jobDescription, resume_text: resumeText })
         });
 
         if (!aiResponse.ok) {
@@ -39,18 +44,14 @@ export const aiWorker = new Worker(AI_RANKING_QUEUE, async (job: Job) => {
         const updateAppQuery = `
             UPDATE applications 
             SET status = 'RANKED', 
-                ai_fit_score = $1, 
-                ai_summary = $2, 
-                ai_matched_skills = $3, 
-                ai_missing_skills = $4
-            WHERE id = $5
+                match_score = $1, 
+                ai_match_report = $2
+            WHERE id = $3
         `;
         
         await pool.query(updateAppQuery, [
             matchReport.fit_score,
-            matchReport.summary,
-            JSON.stringify(matchReport.matched_skills),
-            JSON.stringify(matchReport.missing_skills),
+            JSON.stringify(matchReport),
             applicationId
         ]);
 
