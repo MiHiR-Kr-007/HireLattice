@@ -14,7 +14,7 @@ export const applyForJob = async (req: Request, res: Response): Promise<void> =>
 
     const candidateId = req.user.userId;
     const { jobId } = req.body;
-    
+
     const file = req.file as Express.Multer.File;
 
     if (!jobId || !file) {
@@ -31,21 +31,25 @@ export const applyForJob = async (req: Request, res: Response): Promise<void> =>
             return;
         }
 
+        const userCheck = await pool.query('SELECT name, email FROM users WHERE id = $1', [candidateId]);
+        const candidateName = userCheck.rows[0].name;
+        const candidateEmail = userCheck.rows[0].email;
+
         const insertAppQuery = `
-            INSERT INTO applications (job_id, candidate_id, resume_url, status)
-            VALUES ($1, $2, $3, 'APPLIED')
+            INSERT INTO applications (job_id, candidate_id, candidate_name, candidate_email, resume_url, status)
+            VALUES ($1, $2, $3, $4, $5, 'APPLIED')
             RETURNING id;
         `;
-        const appResult = await pool.query(insertAppQuery, [jobId, candidateId, secureResumeUrl]);
+        const appResult = await pool.query(insertAppQuery, [jobId, candidateId, candidateName, candidateEmail, secureResumeUrl]);
         const applicationId = appResult.rows[0].id;
 
         await aiQueue.add('rank-resume', {
             applicationId,
             jobId: parseInt(jobId, 10),
-            fileUrl: secureResumeUrl 
+            fileUrl: secureResumeUrl
         }, {
-            attempts: 3, 
-            backoff: { type: 'exponential', delay: 2000 } 
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 2000 }
         });
 
         res.status(202).json({

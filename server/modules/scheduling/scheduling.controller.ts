@@ -7,7 +7,7 @@ import crypto from 'crypto';
 
 const createSlotSchema = z.object({
     start_time: z.string(),
-    end_time: z.string(),  
+    end_time: z.string(),
     timezone_iana: z.string(),
     is_recurring: z.boolean(),
     weeks_to_repeat: z.number().min(1).max(12).optional().default(1)
@@ -16,7 +16,7 @@ const createSlotSchema = z.object({
 export const createAvailabilitySlots = async (req: Request, res: Response): Promise<void> => {
     try {
         const parsedData = createSlotSchema.parse(req.body);
-        
+
         const interviewerId = (req as any).user.userId;
 
         const recurrenceGroupId = parsedData.is_recurring ? crypto.randomUUID() : null;
@@ -50,17 +50,17 @@ export const createAvailabilitySlots = async (req: Request, res: Response): Prom
                     (interviewer_id, start_time_utc, end_time_utc, timezone_iana, recurrence_group_id) 
                     VALUES ($1, $2, $3, $4, $5)`,
                     [
-                        slot.interviewerId, 
-                        slot.startUtc, 
-                        slot.endUtc, 
-                        slot.timezoneIana, 
+                        slot.interviewerId,
+                        slot.startUtc,
+                        slot.endUtc,
+                        slot.timezoneIana,
                         slot.recurrenceGroupId
                     ]
                 );
             }
 
             await client.query('COMMIT');
-            
+
             res.status(201).json({
                 message: `Successfully created ${totalWeeks} slot(s)`,
                 recurrence_group: recurrenceGroupId
@@ -68,8 +68,8 @@ export const createAvailabilitySlots = async (req: Request, res: Response): Prom
 
         } catch (dbError: any) {
             await client.query('ROLLBACK');
-            
-            if (dbError.code === '23P01') { 
+
+            if (dbError.code === '23P01') {
                 res.status(409).json({ error: 'One or more of these slots overlap with your existing availability.' });
                 return;
             }
@@ -79,6 +79,10 @@ export const createAvailabilitySlots = async (req: Request, res: Response): Prom
         }
 
     } catch (error) {
+        if (error instanceof z.ZodError) {
+            res.status(400).json({ error: 'Invalid request payload', details: error.issues });
+            return;
+        }
         console.error('Error creating slots:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
