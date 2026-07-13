@@ -63,3 +63,37 @@ export const applyForJob = async (req: Request, res: Response): Promise<void> =>
         res.status(500).json({ error: 'Failed to process application' });
     }
 };
+
+export const getMyApplications = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (!req.user || req.user.role !== 'CANDIDATE') {
+            res.status(403).json({ error: 'Only candidates can view their applications' });
+            return;
+        }
+
+        const candidateId = req.user.userId;
+
+        const query = `
+            SELECT 
+                a.id AS application_id,
+                a.job_id,
+                j.title AS job_title,
+                a.status,
+                a.created_at,
+                i.status AS interview_status,
+                s.start_time_utc AS interview_time
+            FROM applications a
+            JOIN jobs j ON a.job_id = j.id
+            LEFT JOIN interviews i ON a.id = i.candidate_id 
+            LEFT JOIN availability_slots s ON i.slot_id = s.id
+            WHERE a.candidate_id = $1
+            ORDER BY a.created_at DESC
+        `;
+
+        const result = await pool.query(query, [candidateId]);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error fetching candidate applications:', error);
+        res.status(500).json({ error: 'Failed to fetch your applications.' });
+    }
+};

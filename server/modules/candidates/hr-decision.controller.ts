@@ -25,6 +25,69 @@ export const getPendingDecisions = async (req: Request, res: Response): Promise<
     }
 };
 
+export const getAllCandidates = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const query = `
+            SELECT 
+                a.id,
+                a.job_id,
+                j.title AS job_title,
+                a.candidate_name,
+                a.candidate_email,
+                a.match_score,
+                a.status,
+                a.created_at
+            FROM applications a
+            JOIN jobs j ON a.job_id = j.id
+            ORDER BY a.created_at DESC
+        `;
+        const result = await pool.query(query);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error fetching all candidates:', error);
+        res.status(500).json({ error: 'Failed to fetch candidates.' });
+    }
+};
+
+export const getCandidateById = async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    try {
+        const appQuery = `
+            SELECT 
+                a.id, a.job_id, a.candidate_id, a.candidate_name, a.candidate_email,
+                a.resume_url, a.ai_match_report, a.match_score, a.status,
+                j.title AS job_title
+            FROM applications a
+            JOIN jobs j ON a.job_id = j.id
+            WHERE a.id = $1
+        `;
+        const appResult = await pool.query(appQuery, [id]);
+
+        if (appResult.rowCount === 0) {
+            res.status(404).json({ error: 'Candidate not found.' });
+            return;
+        }
+
+        const candidate = appResult.rows[0];
+
+        const intQuery = `
+            SELECT id, status, feedback, created_at 
+            FROM interviews 
+            WHERE candidate_id = $1 AND feedback IS NOT NULL
+            ORDER BY created_at DESC
+        `;
+        const intResult = await pool.query(intQuery, [candidate.candidate_id || id]);
+
+        res.status(200).json({
+            ...candidate,
+            interviews: intResult.rows
+        });
+    } catch (error) {
+        console.error('Error fetching candidate details:', error);
+        res.status(500).json({ error: 'Failed to fetch candidate details.' });
+    }
+};
+
 export const makeFinalDecision = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const { final_decision } = req.body;

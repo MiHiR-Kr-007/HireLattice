@@ -87,3 +87,34 @@ export const createAvailabilitySlots = async (req: Request, res: Response): Prom
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
+export const getUpcomingInterviews = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const interviewerId = (req as any).user.userId;
+
+        const query = `
+            SELECT 
+                i.id AS interview_id,
+                i.status,
+                s.start_time_utc,
+                s.end_time_utc,
+                a.candidate_name,
+                a.candidate_email,
+                a.resume_url,
+                j.title AS job_title
+            FROM interviews i
+            JOIN availability_slots s ON i.slot_id = s.id
+            JOIN applications a ON i.candidate_id = a.id
+            JOIN jobs j ON a.job_id = j.id
+            WHERE s.interviewer_id = $1 
+              AND i.status IN ('CONFIRMED', 'OFFERED')
+            ORDER BY s.start_time_utc ASC
+        `;
+
+        const result = await pool.query(query, [interviewerId]);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error fetching upcoming interviews:', error);
+        res.status(500).json({ error: 'Failed to fetch upcoming interviews.' });
+    }
+};

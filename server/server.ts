@@ -1,4 +1,6 @@
 import './workers/ai.worker.js';
+import './workers/matchmaker.worker.js';
+import './workers/notification.worker.js';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -15,7 +17,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
+}));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
