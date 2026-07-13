@@ -30,12 +30,18 @@ export function AvailabilityManager() {
             const [hours, minutes] = time.split(":");
             const slotDateTime = new Date(date);
             slotDateTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+            
+            // Assume 1 hour interview slot for now
+            const endDateTime = new Date(slotDateTime);
+            endDateTime.setHours(endDateTime.getHours() + 1);
 
             const timezoneIana = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
             await api.post("/scheduling/slots", {
-                start_time_utc: slotDateTime.toISOString(),
+                start_time: slotDateTime.toISOString(),
+                end_time: endDateTime.toISOString(),
                 timezone_iana: timezoneIana,
+                is_recurring: false
             });
 
             toast.success("Availability slot registered successfully!");
