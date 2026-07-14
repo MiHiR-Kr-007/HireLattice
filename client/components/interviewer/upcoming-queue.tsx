@@ -14,12 +14,12 @@ import { FeedbackModal } from "./feedback-modal";
 import { Video, UserX } from "lucide-react";
 
 interface Interview {
-    id: string;
+    interview_id: string;
     candidate_name: string;
     job_title: string;
     start_time_utc: string;
     meet_link: string;
-    status: "CONFIRMED" | "COMPLETED" | "NO_SHOW";
+    status: "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "OFFERED";
 }
 
 export function UpcomingQueue() {
@@ -70,7 +70,7 @@ export function UpcomingQueue() {
     return (
         <div className="space-y-4">
             {interviews.map((interview) => (
-                <Card key={interview.id} className="shadow-sm border transition-all hover:shadow-ambient">
+                <Card key={interview.interview_id} className="shadow-sm border transition-all hover:shadow-ambient">
                     <CardContent className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                         <div className="space-y-1">
                             <div className="flex items-center gap-2">
@@ -94,13 +94,13 @@ export function UpcomingQueue() {
                             <Button 
                                 variant="outline" 
                                 className="text-destructive hover:bg-destructive/10"
-                                onClick={() => handleNoShow(interview.id)}
-                                disabled={isReporting === interview.id}
+                                onClick={() => handleNoShow(interview.interview_id)}
+                                disabled={isReporting === interview.interview_id}
                             >
                                 <UserX className="h-4 w-4 mr-2" />
                                 No-Show
                             </Button>
-                            <Button onClick={() => setSelectedInterviewId(interview.id)}>
+                            <Button onClick={() => setSelectedInterviewId(interview.interview_id)}>
                                 Submit Feedback
                             </Button>
                         </div>

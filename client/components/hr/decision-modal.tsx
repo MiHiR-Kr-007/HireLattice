@@ -40,7 +40,7 @@ export function DecisionModal({ candidateId, isOpen, onClose, onDecisionMade }: 
     const handleDecision = async (decision: "HIRED" | "REJECTED") => {
         setIsSubmitting(true);
         try {
-            await api.post(`/candidates/${candidateId}/decision`, { decision });
+            await api.post(`/candidates/${candidateId}/decision`, { final_decision: decision });
             toast.success(`Candidate has been ${decision.toLowerCase()}!`);
             onDecisionMade();
             onClose();
@@ -59,7 +59,7 @@ export function DecisionModal({ candidateId, isOpen, onClose, onDecisionMade }: 
                 <div className="p-6 pb-4 bg-muted/30">
                     <DialogHeader>
                         <DialogTitle className="text-2xl flex items-center justify-between">
-                            <span>{details?.name || "Loading Candidate..."}</span>
+                            <span>{details?.candidate_name || details?.name || "Loading Candidate..."}</span>
                             {details && (
                                 <Badge variant="outline" className="text-sm font-normal">
                                     {details.job_title}
@@ -91,20 +91,20 @@ export function DecisionModal({ candidateId, isOpen, onClose, onDecisionMade }: 
 
                                     <div className="bg-purple-50 dark:bg-purple-950/20 p-4 rounded-xl border border-purple-100 dark:border-purple-900/50 flex justify-between items-center">
                                         <span className="font-medium">System Fit Score</span>
-                                        <Badge variant={details.ai_report?.score >= 7 ? "default" : "secondary"} className="text-lg px-3 py-1">
-                                            {details.ai_report?.score}/10
+                                        <Badge variant={details.match_score >= 7 ? "default" : "secondary"} className="text-lg px-3 py-1">
+                                            {details.match_score}/10
                                         </Badge>
                                     </div>
 
                                     <div>
                                         <h4 className="text-sm font-semibold mb-2 text-muted-foreground">One-Line Summary</h4>
-                                        <p className="text-sm leading-relaxed">{details.ai_report?.summary}</p>
+                                        <p className="text-sm leading-relaxed">{details.ai_match_report?.summary || details.ai_match_report?.Summary}</p>
                                     </div>
 
                                     <div>
                                         <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Matched Skills</h4>
                                         <div className="flex flex-wrap gap-2">
-                                            {details.ai_report?.matched_skills?.map((skill: string) => (
+                                            {(details.ai_match_report?.matched_skills || details.ai_match_report?.Matched_Skills)?.map((skill: string) => (
                                                 <Badge key={skill} variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300">
                                                     {skill}
                                                 </Badge>
@@ -115,7 +115,7 @@ export function DecisionModal({ candidateId, isOpen, onClose, onDecisionMade }: 
                                     <div>
                                         <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Missing Skills</h4>
                                         <div className="flex flex-wrap gap-2">
-                                            {details.ai_report?.missing_skills?.map((skill: string) => (
+                                            {(details.ai_match_report?.missing_skills || details.ai_match_report?.Missing_Skills)?.map((skill: string) => (
                                                 <Badge key={skill} variant="outline" className="text-muted-foreground border-dashed">
                                                     {skill}
                                                 </Badge>
@@ -133,28 +133,28 @@ export function DecisionModal({ candidateId, isOpen, onClose, onDecisionMade }: 
                                     </div>
 
                                     <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 flex justify-between items-center">
-                                        <span className="font-medium">Interviewer: {details.human_feedback?.interviewer_name}</span>
+                                        <span className="font-medium">Feedback Details</span>
                                     </div>
 
                                     <div className="space-y-4">
                                         <div>
                                             <h4 className="text-sm font-semibold mb-1 text-muted-foreground">Technical Assessment</h4>
-                                            <p className="text-sm">{details.human_feedback?.technical_notes}</p>
+                                            <p className="text-sm whitespace-pre-wrap">{details.interviews?.[0]?.feedback?.technical_notes}</p>
                                         </div>
 
                                         <Separator />
 
                                         <div>
                                             <h4 className="text-sm font-semibold mb-1 text-muted-foreground">Communication & Culture</h4>
-                                            <p className="text-sm">{details.human_feedback?.communication_notes}</p>
+                                            <p className="text-sm whitespace-pre-wrap">{details.interviews?.[0]?.feedback?.communication_notes}</p>
                                         </div>
 
                                         <Separator />
 
                                         <div>
                                             <h4 className="text-sm font-semibold mb-1 text-muted-foreground">Final Recommendation</h4>
-                                            <p className="text-sm italic text-foreground">
-                                                "{details.human_feedback?.final_recommendation}"
+                                            <p className="text-sm font-semibold text-primary">
+                                                {details.interviews?.[0]?.feedback?.final_recommendation}
                                             </p>
                                         </div>
                                     </div>
