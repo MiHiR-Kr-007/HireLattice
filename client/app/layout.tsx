@@ -10,7 +10,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "HireFlow | Intelligent Interview Pipeline",
+  title: "HireLattice | Intelligent Interview Pipeline",
   description: "End-to-end automated hiring and scheduling.",
 };
 

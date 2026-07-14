@@ -9,7 +9,7 @@ cloudinary.config({
 });
 
 export class CloudinaryService implements IStorageService {
-    async uploadFile(filePath: string, folderName: string = 'hireflow/resumes'): Promise<string> {
+    async uploadFile(filePath: string, folderName: string = 'hirelattice/resumes'): Promise<string> {
         try {
             const result = await cloudinary.uploader.upload(filePath, {
                 folder: folderName,

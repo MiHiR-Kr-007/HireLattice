@@ -65,7 +65,7 @@ export default function LoginPage() {
             <Card className="w-full max-w-sm shadow-ambient border-none">
                 <CardHeader className="text-center space-y-2">
                     <CardTitle className="text-3xl font-bold tracking-tight text-primary">
-                        HireFlow
+                        HireLattice
                     </CardTitle>
                     <CardDescription>
                         Enter your credentials to access your dashboard.

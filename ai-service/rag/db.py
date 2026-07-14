@@ -9,9 +9,9 @@ class DatabaseManager:
     def __init__(self):
         self.host = os.getenv("DB_HOST", "localhost")
         self.port = os.getenv("DB_PORT", "5432")
-        self.user = os.getenv("DB_USER", "hireflow_user")
+        self.user = os.getenv("DB_USER", "hirelattice_user")
         self.password = os.getenv("DB_PASSWORD", "password")
-        self.dbname = os.getenv("DB_NAME", "hireflow_db")
+        self.dbname = os.getenv("DB_NAME", "hirelattice_db")
 
     def get_connection(self):
         try:

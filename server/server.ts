@@ -31,7 +31,7 @@ app.use('/api/interviews', interviewRoutes);
 app.use('/api/candidates', candidateRoutes);
 
 app.get('/health', (req: Request, res: Response) => {
-    res.status(200).json({ status: 'OK', service: 'HireFlow API' });
+    res.status(200).json({ status: 'OK', service: 'HireLattice API' });
 });
 
 // Error handling middlewares

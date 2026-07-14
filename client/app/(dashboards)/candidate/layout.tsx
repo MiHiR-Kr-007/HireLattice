@@ -9,7 +9,7 @@ export default function CandidateLayout({ children }: { children: React.ReactNod
     const router = useRouter();
 
     const handleLogout = () => {
-        localStorage.removeItem("hireflow_token");
+        localStorage.removeItem("token");
         toast.success("Logged out successfully");
         router.push("/login");
     };
@@ -20,7 +20,7 @@ export default function CandidateLayout({ children }: { children: React.ReactNod
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-primary">
                         <User className="h-6 w-6" />
-                        <span className="text-xl font-bold tracking-tight">HireFlow Candidate</span>
+                        <span className="text-xl font-bold tracking-tight">HireLattice Candidate</span>
                     </div>
                     <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={handleLogout}>
                         <LogOut className="h-4 w-4 mr-2" />

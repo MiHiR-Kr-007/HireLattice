@@ -19,7 +19,7 @@ interface EmailPayload {
 export const sendEmail = async ({ to, subject, body }: EmailPayload): Promise<void> => {
     try {
         const info = await transporter.sendMail({
-            from: process.env.FROM_EMAIL || '"HireFlow" <noreply@hireflow.com>',
+            from: process.env.FROM_EMAIL || '"HireLattice" <noreply@hirelattice.com>',
             to,
             subject,
             text: body,

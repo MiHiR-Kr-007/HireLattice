@@ -43,7 +43,7 @@ export class CalendarService {
                 ],
                 conferenceData: {
                     createRequest: {
-                        requestId: `hireflow-${Date.now()}`,
+                        requestId: `hirelattice-${Date.now()}`,
                         conferenceSolutionKey: { type: 'hangoutsMeet' }
                     }
                 },

@@ -4,9 +4,9 @@ services:
   db:
     image: ankane/pgvector:latest
     environment:
-      POSTGRES_USER: hireflow_user
+      POSTGRES_USER: hirelattice_user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: hireflow_db
+      POSTGRES_DB: hirelattice_db
     ports:
       - "5432:5432"
     volumes:

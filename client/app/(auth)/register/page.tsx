@@ -71,7 +71,7 @@ export default function RegisterPage() {
             <Card className="w-full max-w-sm shadow-ambient border-none">
                 <CardHeader className="text-center space-y-2">
                     <CardTitle className="text-3xl font-bold tracking-tight text-primary">
-                        Join HireFlow
+                        Join HireLattice
                     </CardTitle>
                     <CardDescription>
                         Create your account to get started.

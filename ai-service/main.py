@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(
-    title="HireFlow AI Service",
+    title="HireLattice AI Service",
     description="Intelligent screening and ranking engine for resumes.",
     version="1.0.0",
     lifespan=lifespan
@@ -32,4 +32,4 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "HireFlow AI Engine"}
+    return {"status": "healthy", "service": "HireLattice AI Engine"}

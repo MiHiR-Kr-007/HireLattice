@@ -9,7 +9,7 @@ export default function InterviewerLayout({ children }: { children: React.ReactN
     const router = useRouter();
 
     const handleLogout = () => {
-        localStorage.removeItem("hireflow_token");
+        localStorage.removeItem("token");
         toast.success("Logged out successfully");
         router.push("/login");
     };
@@ -20,7 +20,7 @@ export default function InterviewerLayout({ children }: { children: React.ReactN
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-primary">
                         <CalendarDays className="h-6 w-6" />
-                        <span className="text-xl font-bold tracking-tight">HireFlow Interviewer</span>
+                        <span className="text-xl font-bold tracking-tight">HireLattice Interviewer</span>
                     </div>
                     <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={handleLogout}>
                         <LogOut className="h-4 w-4 mr-2" />
