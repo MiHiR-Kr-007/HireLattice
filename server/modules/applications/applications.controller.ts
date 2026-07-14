@@ -84,7 +84,12 @@ export const getMyApplications = async (req: Request, res: Response): Promise<vo
                 s.start_time_utc AS interview_time
             FROM applications a
             JOIN jobs j ON a.job_id = j.id
-            LEFT JOIN interviews i ON a.id = i.candidate_id 
+            LEFT JOIN LATERAL (
+                SELECT id, status, slot_id 
+                FROM interviews 
+                WHERE candidate_id = a.candidate_id 
+                ORDER BY created_at DESC LIMIT 1
+            ) i ON a.status IN ('SCHEDULED', 'INTERVIEWED', 'HIRED', 'REJECTED')
             LEFT JOIN availability_slots s ON i.slot_id = s.id
             WHERE a.candidate_id = $1
             ORDER BY a.created_at DESC
@@ -95,5 +100,48 @@ export const getMyApplications = async (req: Request, res: Response): Promise<vo
     } catch (error) {
         console.error('Error fetching candidate applications:', error);
         res.status(500).json({ error: 'Failed to fetch your applications.' });
+    }
+};
+
+export const retryAiRanking = async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+
+    try {
+        const query = `
+            SELECT id, job_id, resume_url, status 
+            FROM applications 
+            WHERE id = $1
+        `;
+        const result = await pool.query(query, [id]);
+
+        if (result.rowCount === 0) {
+            res.status(404).json({ error: 'Application not found' });
+            return;
+        }
+
+        const application = result.rows[0];
+
+        // only retried if it's stuck in APPLIED
+        if (application.status !== 'APPLIED') {
+            res.status(400).json({ error: 'Can only retry AI ranking for applications stuck in APPLIED status' });
+            return;
+        }
+
+        await aiQueue.add('rank-resume', {
+            applicationId: application.id,
+            jobId: application.job_id,
+            fileUrl: application.resume_url
+        }, {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 2000 }
+        });
+
+        res.status(202).json({
+            message: 'AI Ranking job re-queued successfully.',
+            applicationId: application.id
+        });
+    } catch (error) {
+        console.error('Error retrying AI ranking:', error);
+        res.status(500).json({ error: 'Failed to re-queue AI ranking job.' });
     }
 };

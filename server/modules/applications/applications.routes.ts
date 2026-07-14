@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import fs from 'fs';
-import { applyForJob, getMyApplications } from './applications.controller.js';
+import { applyForJob, getMyApplications, retryAiRanking } from './applications.controller.js';
 import { authenticateToken, requireRole } from '../../shared/middleware/auth.middleware.js';
 
 const router = Router();
@@ -35,5 +35,6 @@ const upload = multer({
 
 router.post('/apply', authenticateToken, requireRole('CANDIDATE'), upload.single('resume'), applyForJob);
 router.get('/me', authenticateToken, requireRole('CANDIDATE'), getMyApplications);
+router.post('/:id/retry', authenticateToken, requireRole('HR'), retryAiRanking);
 
 export default router;

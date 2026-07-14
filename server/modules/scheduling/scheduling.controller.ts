@@ -104,7 +104,12 @@ export const getUpcomingInterviews = async (req: Request, res: Response): Promis
                 j.title AS job_title
             FROM interviews i
             JOIN availability_slots s ON i.slot_id = s.id
-            JOIN applications a ON i.candidate_id = a.id
+            JOIN LATERAL (
+                SELECT candidate_name, candidate_email, resume_url, job_id, status
+                FROM applications 
+                WHERE candidate_id = i.candidate_id 
+                ORDER BY id DESC LIMIT 1
+            ) a ON true
             JOIN jobs j ON a.job_id = j.id
             WHERE s.interviewer_id = $1 
               AND i.status IN ('CONFIRMED', 'OFFERED')

@@ -9,7 +9,7 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
     }
 
     const { interviewId } = req.params;
-    const { technical_score, communication_score, strengths, recommendation, comments } = req.body;
+    const { technical_notes, communication_notes, final_recommendation } = req.body;
     const interviewerId = req.user.userId;
 
     const client = await pool.connect();
@@ -18,11 +18,15 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
         await client.query('BEGIN');
 
         const interviewCheck = await client.query(
-            `SELECT candidate_id FROM interviews WHERE id = $1 AND interviewer_id = $2 AND status = 'CONFIRMED'`,
+            `SELECT i.candidate_id 
+             FROM interviews i
+             JOIN availability_slots s ON i.slot_id = s.id
+             WHERE i.id = $1 AND s.interviewer_id = $2 AND (i.status = 'CONFIRMED' OR i.status = 'OFFERED')`,
             [interviewId, interviewerId]
         );
 
         if (interviewCheck.rowCount === 0) {
+            await client.query('ROLLBACK');
             res.status(400).json({ error: 'Valid, confirmed interview not found.' });
             return;
         }
@@ -30,11 +34,9 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
         const candidateId = interviewCheck.rows[0].candidate_id;
 
         const feedbackPayload = JSON.stringify({
-            technical_score,
-            communication_score,
-            strengths,
-            recommendation,
-            comments,
+            technical_notes,
+            communication_notes,
+            final_recommendation,
             submitted_at: new Date().toISOString()
         });
 
@@ -44,7 +46,7 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
         );
 
         await client.query(
-            `UPDATE applications SET status = 'INTERVIEWED' WHERE id = $1`,
+            `UPDATE applications SET status = 'INTERVIEWED' WHERE candidate_id = $1 AND (status = 'SCHEDULED' OR status = 'RANKED')`,
             [candidateId]
         );
 

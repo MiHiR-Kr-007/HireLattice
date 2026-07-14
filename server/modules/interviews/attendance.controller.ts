@@ -21,6 +21,7 @@ export const reportCandidateNoShow = async (req: Request, res: Response): Promis
         );
 
         if (interviewCheck.rowCount === 0) {
+            await client.query('ROLLBACK');
             res.status(400).json({ error: 'Valid, confirmed interview not found.' });
             return;
         }
@@ -70,6 +71,7 @@ export const reportInterviewerNoShow = async (req: Request, res: Response): Prom
         );
 
         if (interviewCheck.rowCount === 0) {
+            await client.query('ROLLBACK');
             res.status(400).json({ error: 'Valid, confirmed interview not found.' });
             return;
         }

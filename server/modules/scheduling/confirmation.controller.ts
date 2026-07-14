@@ -27,6 +27,7 @@ export const handleCandidateResponse = async (req: Request, res: Response): Prom
                 
                 await redisClient.del(redisLockKey);
                 await client.query('COMMIT');
+                client.release();
                 
                 res.status(200).json({ message: 'Slot declined successfully. Your profile has returned to the scheduling pool.' });
                 return;
@@ -41,6 +42,7 @@ export const handleCandidateResponse = async (req: Request, res: Response): Prom
                 await client.query(`UPDATE availability_slots SET status = 'AVAILABLE' WHERE id = $1`, [slotId]);
                 
                 await client.query('COMMIT');
+                client.release();
                 res.status(410).json({ error: 'Reservation window expired. Please request a new interview slot.' });
                 return;
             }

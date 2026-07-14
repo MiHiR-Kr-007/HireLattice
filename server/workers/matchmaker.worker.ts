@@ -16,23 +16,24 @@ export const matchmakerWorker = new Worker<MatchmakerJobData>(
 
         const client = await pool.connect();
 
+        let acquiredSlotId: number | null = null;
+
         try {
             await client.query('BEGIN');
 
-            // take the best interviewer from the pool
+            // find an available slot. For now, match any interviewer's slot.
             const slotQuery = `
-                SELECT s.id as slot_id, s.interviewer_id, pm.reliability_score
+                SELECT s.id as slot_id, s.interviewer_id, u.reliability_score
                 FROM availability_slots s
-                JOIN interviewer_pools ip ON ip.job_id = $1
-                JOIN pool_members pm ON pm.pool_id = ip.id AND pm.interviewer_id = s.interviewer_id
+                JOIN users u ON u.id = s.interviewer_id
                 WHERE s.status = 'AVAILABLE' 
                   AND s.start_time_utc > CURRENT_TIMESTAMP
-                ORDER BY pm.reliability_score DESC, s.start_time_utc ASC
+                ORDER BY u.reliability_score DESC, s.start_time_utc ASC
                 LIMIT 1
                 FOR UPDATE SKIP LOCKED; -- Advanced Row-Level Locking to handle simultaneous workers safely
             `;
 
-            const slotResult = await client.query(slotQuery, [jobId]);
+            const slotResult = await client.query(slotQuery);
 
             // No slots found
             if (slotResult.rows.length === 0) {
@@ -62,6 +63,8 @@ export const matchmakerWorker = new Worker<MatchmakerJobData>(
             if (!isReserved) {
                 throw new Error(`Slot #${slotId} was reserved by another thread concurrently. Retrying job.`);
             }
+            
+            acquiredSlotId = slotId;
 
             await client.query(
                 `UPDATE availability_slots SET status = 'RESERVED' WHERE id = $1`,
@@ -74,7 +77,7 @@ export const matchmakerWorker = new Worker<MatchmakerJobData>(
             );
 
             await client.query(
-                `UPDATE applications SET status = 'SLOT_OFFERED' WHERE candidate_id = $1 AND job_id = $2`,
+                `UPDATE applications SET status = 'SCHEDULED' WHERE candidate_id = $1 AND job_id = $2`,
                 [candidateId, jobId]
             );
 
@@ -85,6 +88,10 @@ export const matchmakerWorker = new Worker<MatchmakerJobData>(
 
         } catch (error) {
             await client.query('ROLLBACK');
+            if (acquiredSlotId) {
+                // If the transaction failed but we acquired the lock, we must release it so it doesn't stay stuck for 15 minutes!
+                await redisClient.del(`lock:slot:${acquiredSlotId}`);
+            }
             console.error(`Matchmaking failed for Candidate #${candidateId}:`, error);
             throw error; 
         } finally {

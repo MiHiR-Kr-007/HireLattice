@@ -68,3 +68,19 @@ export const createJob = async (req: Request, res: Response): Promise<void> => {
         client.release();
     }
 };
+
+export const getOpenJobs = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const query = `
+            SELECT id, title, description, status, created_at
+            FROM jobs
+            WHERE status = 'OPEN'
+            ORDER BY created_at DESC
+        `;
+        const result = await pool.query(query);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error fetching open jobs:', error);
+        res.status(500).json({ error: 'Failed to fetch open jobs' });
+    }
+};

@@ -2,6 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../shared/redis.js';
 import { pool } from '../shared/db.js';
 import { AI_RANKING_QUEUE } from '../queues/ai.queue.js';
+import { matchmakingQueue } from '../queues/matchmaker.queue.js';
 import { PDFParse } from 'pdf-parse';
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
@@ -56,6 +57,21 @@ export const aiWorker = new Worker(AI_RANKING_QUEUE, async (job: Job) => {
         ]);
 
         console.log(`[Worker] Successfully ranked Application ${applicationId}`);
+
+        if (matchReport.fit_score >= 7) {
+            console.log(`[Worker] Score >= 7. Queueing Application ${applicationId} for scheduling...`);
+            
+            const appQuery = await pool.query('SELECT candidate_id FROM applications WHERE id = $1', [applicationId]);
+            const candidateId = appQuery.rows[0].candidate_id;
+
+            await matchmakingQueue.add('schedule-interview', {
+                candidateId,
+                jobId,
+                rankScore: matchReport.fit_score
+            });
+        } else {
+            console.log(`[Worker] Score < 7. Application ${applicationId} will stay in RANKED state for manual review.`);
+        }
 
     } catch (error) {
         console.error(`[Worker] Failed to process Application ${applicationId}:`, error);

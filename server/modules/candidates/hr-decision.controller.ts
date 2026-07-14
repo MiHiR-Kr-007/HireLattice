@@ -34,6 +34,8 @@ export const getAllCandidates = async (req: Request, res: Response): Promise<voi
                 j.title AS job_title,
                 a.candidate_name,
                 a.candidate_email,
+                a.resume_url,
+                a.ai_match_report,
                 a.match_score,
                 a.status,
                 a.created_at
