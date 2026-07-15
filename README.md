@@ -37,6 +37,58 @@ The system also employs behavioral heuristics—automatically penalizing intervi
 
 ## System Architecture
 
+```mermaid
+graph TD
+    %% Actors
+    C([Candidate])
+    I([Interviewer])
+    HR([HR Admin])
+
+    %% Frontend Services
+    subgraph "Next.js Frontend (Client)"
+        UI_C[Candidate Portal]
+        UI_I[Interviewer Dashboard]
+        UI_H[HR Kanban Board]
+    end
+
+    %% Backend Node.js
+    subgraph "Transactional Backend (Node.js)"
+        API[Express API Gateway]
+        Auth[Auth Middleware]
+        MM[Matchmaking Worker]
+    end
+
+    %% AI Microservice
+    subgraph "AI Engine (Python/FastAPI)"
+        RAG[Resume Parser]
+        LLM[Gemini Inference]
+    end
+
+    %% Data Layer
+    subgraph "State & Persistence"
+        PG[(PostgreSQL + pgvector)]
+        REDIS[(Redis Cache & BullMQ)]
+    end
+
+    %% Interactions
+    C --> UI_C
+    I --> UI_I
+    HR --> UI_H
+
+    UI_C --> API
+    UI_I --> API
+    UI_H --> API
+
+    API -->|Async Parsing| RAG
+    RAG -->|Generate Vectors| LLM
+    LLM -->|Return Match Score| API
+    
+    API -->|Enqueue Candidate| REDIS
+    REDIS -->|Dequeue| MM
+    MM -->|FOR UPDATE SKIP LOCKED| PG
+    API <--> PG
+```
+
 HireLattice is built with a highly decoupled, fault-tolerant microservice architecture to isolate computational AI workloads from real-time web transactions.
 
 - **Client Application:** A stateless Next.js (React) frontend leveraging React Query for aggressive caching and optimistic UI updates.
