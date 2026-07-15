@@ -18,7 +18,7 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
         await client.query('BEGIN');
 
         const interviewCheck = await client.query(
-            `SELECT i.candidate_id 
+            `SELECT i.candidate_id, i.application_id 
              FROM interviews i
              JOIN availability_slots s ON i.slot_id = s.id
              WHERE i.id = $1 AND s.interviewer_id = $2 AND (i.status = 'CONFIRMED' OR i.status = 'OFFERED')`,
@@ -31,7 +31,7 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        const candidateId = interviewCheck.rows[0].candidate_id;
+        const applicationId = interviewCheck.rows[0].application_id;
 
         const feedbackPayload = JSON.stringify({
             technical_notes,
@@ -46,8 +46,8 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
         );
 
         await client.query(
-            `UPDATE applications SET status = 'INTERVIEWED' WHERE candidate_id = $1 AND (status = 'SCHEDULED' OR status = 'RANKED')`,
-            [candidateId]
+            `UPDATE applications SET status = 'INTERVIEWED' WHERE id = $1`,
+            [applicationId]
         );
 
         await client.query(

@@ -13,7 +13,7 @@ export const getPendingDecisions = async (req: Request, res: Response): Promise<
                 i.feedback AS human_feedback,
                 i.interviewer_id
             FROM applications a
-            JOIN interviews i ON a.id = i.candidate_id
+            JOIN interviews i ON a.id = i.application_id
             WHERE a.status = 'INTERVIEWED' AND i.status = 'COMPLETED'
         `;
 

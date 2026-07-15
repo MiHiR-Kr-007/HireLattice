@@ -73,6 +73,7 @@ CREATE TABLE interviews (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     slot_id INTEGER REFERENCES availability_slots(id) ON DELETE CASCADE,
+    application_id INTEGER REFERENCES applications(id) ON DELETE CASCADE,
     status interview_status DEFAULT 'OFFERED',
     feedback JSONB NULL, 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

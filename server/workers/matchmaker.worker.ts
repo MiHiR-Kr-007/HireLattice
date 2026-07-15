@@ -71,14 +71,16 @@ export const matchmakerWorker = new Worker<MatchmakerJobData>(
                 [slotId]
             );
 
-            await client.query(
-                `INSERT INTO interviews (candidate_id, slot_id, status) VALUES ($1, $2, 'OFFERED')`,
-                [candidateId, slotId]
+            const updateResult = await client.query(
+                `UPDATE applications SET status = 'SCHEDULED' WHERE candidate_id = $1 AND job_id = $2 RETURNING id`,
+                [candidateId, jobId]
             );
+            
+            const applicationId = updateResult.rows[0].id;
 
             await client.query(
-                `UPDATE applications SET status = 'SCHEDULED' WHERE candidate_id = $1 AND job_id = $2`,
-                [candidateId, jobId]
+                `INSERT INTO interviews (candidate_id, slot_id, application_id, status) VALUES ($1, $2, $3, 'OFFERED')`,
+                [candidateId, slotId, applicationId]
             );
 
             await client.query('COMMIT');
