@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 
+import { ThemeToggle } from "@/components/theme-toggle";
+
 export default function HRLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
@@ -23,10 +25,13 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
                         <Briefcase className="h-6 w-6" />
                         <span className="text-xl font-bold tracking-tight">HireLattice HR</span>
                     </div>
-                    <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={handleLogout}>
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Logout
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <ThemeToggle />
+                        <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={handleLogout}>
+                            <LogOut className="h-4 w-4 mr-2" />
+                            Logout
+                        </Button>
+                    </div>
                 </div>
             </header>
 

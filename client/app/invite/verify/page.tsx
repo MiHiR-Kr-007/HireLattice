@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 function VerifyLogic() {
     const searchParams = useSearchParams();
@@ -86,7 +87,10 @@ function VerifyLogic() {
 
 export default function VerifyPage() {
     return (
-        <div className="min-h-screen w-full flex items-center justify-center p-4">
+        <div className="min-h-screen w-full flex items-center justify-center p-4 relative">
+            <div className="absolute top-4 right-4">
+                <ThemeToggle />
+            </div>
             <Suspense fallback={
                 <div className="flex items-center space-x-2 text-primary">
                     <Loader2 className="h-6 w-6 animate-spin" />

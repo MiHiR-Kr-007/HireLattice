@@ -21,6 +21,8 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+import { ThemeToggle } from "@/components/theme-toggle";
+
 export default function LoginPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +63,10 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center p-4">
+        <div className="min-h-screen w-full flex items-center justify-center p-4 relative">
+            <div className="absolute top-4 right-4">
+                <ThemeToggle />
+            </div>
             <Card className="w-full max-w-sm shadow-ambient border-none">
                 <CardHeader className="text-center space-y-2">
                     <CardTitle className="text-3xl font-bold tracking-tight text-primary">
