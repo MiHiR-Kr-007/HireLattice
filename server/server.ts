@@ -11,6 +11,7 @@ import applicationRoutes from './modules/applications/applications.routes.js';
 import schedulingRoutes from './modules/scheduling/scheduling.routes.js';
 import interviewRoutes from './modules/interviews/interviews.routes.js';
 import candidateRoutes from './modules/candidates/candidates.routes.js';
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use(cors({
     credentials: true,
 }));
 app.use(express.json());
+app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);

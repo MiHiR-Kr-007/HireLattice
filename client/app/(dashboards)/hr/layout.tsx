@@ -4,14 +4,20 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LogOut, Briefcase } from "lucide-react";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function HRLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
+    const handleLogout = async () => {
+        try {
+            await api.post("/auth/logout");
+        } catch (e) {
+            console.error("Logout failed", e);
+        }
+        localStorage.removeItem("userRole");
         toast.success("Logged out successfully");
         router.push("/login");
     };

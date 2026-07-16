@@ -10,9 +10,13 @@ interface UserPayload {
 }
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {
-    const authHeader = req.headers['authorization'];
+    let token = req.cookies?.token;
     
-    const token = authHeader && authHeader.split(' ')[1];
+    // Fallback for Authorization header (optional, but good for non-browser clients)
+    if (!token) {
+        const authHeader = req.headers['authorization'];
+        token = authHeader && authHeader.split(' ')[1];
+    }
 
     if (!token) {
         res.status(401).json({ error: 'Access denied: No token provided' });

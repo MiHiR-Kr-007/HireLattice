@@ -16,6 +16,15 @@ const generateToken = (userId: number, email: string, role: string): string => {
     return jwt.sign({ userId, email, role }, JWT_SECRET, options);
 };
 
+const setTokenCookie = (res: Response, token: string) => {
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+};
+
 
 // Native Email & Password Registration
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -45,8 +54,9 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         const newUser = result.rows[0];
 
         const token = generateToken(newUser.id, newUser.email, newUser.role);
+        setTokenCookie(res, token);
 
-        res.status(201).json({ user: newUser, token });
+        res.status(201).json({ user: newUser });
     } catch (error: any) {
         console.error('Registration error:', error);
         res.status(500).json({ error: 'Internal server error during registration' });
@@ -83,10 +93,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         }
 
         const token = generateToken(user.id, user.email, user.role);
+        setTokenCookie(res, token);
         
         res.status(200).json({
-            user: { id: user.id, name: user.name, email: user.email, role: user.role },
-            token
+            user: { id: user.id, name: user.name, email: user.email, role: user.role }
         });
     } catch (error) {
         console.error('Login error:', error);
@@ -138,10 +148,16 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
         }
 
         const token = generateToken(user.id, user.email, user.role);
+        setTokenCookie(res, token);
 
-        res.status(200).json({ user, token });
+        res.status(200).json({ user });
     } catch (error: any) {
         console.error('Google OAuth validation error:', error.message);
         res.status(401).json({ error: 'Authentication failed: Invalid Google Token' });
     }
+};
+
+export const logout = async (req: Request, res: Response): Promise<void> => {
+    res.clearCookie('token');
+    res.status(200).json({ message: 'Logged out successfully' });
 };

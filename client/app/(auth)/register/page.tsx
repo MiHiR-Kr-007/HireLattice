@@ -44,10 +44,9 @@ export default function RegisterPage() {
         try {
             const response = await api.post("/auth/register", data);
 
-            const { token, user } = response.data;
+            const { user } = response.data;
             const userRole = user.role; 
 
-            localStorage.setItem("token", token);
             localStorage.setItem("userRole", userRole);
 
             toast.success("Registration successful! Redirecting...");

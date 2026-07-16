@@ -40,10 +40,9 @@ export default function LoginPage() {
         try {
             const response = await api.post("/auth/login", data);
 
-            const { token, user } = response.data;
+            const { user } = response.data;
             const userRole = user.role; 
 
-            localStorage.setItem("token", token);
             localStorage.setItem("userRole", userRole);
 
             toast.success("Login successful! Redirecting...");
