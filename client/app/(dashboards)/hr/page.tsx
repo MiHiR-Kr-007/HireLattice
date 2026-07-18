@@ -3,6 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JobPostingForm } from "@/components/hr/job-form";
 import { KanbanBoard } from "@/components/hr/kanban-board";
+import { ManageJobs } from "@/components/hr/manage-jobs";
 
 export default function HRDashboard() {
     return (
@@ -16,8 +17,9 @@ export default function HRDashboard() {
             </div>
 
             <Tabs defaultValue="pipeline" className="w-full">
-                <TabsList className="grid w-full max-w-[400px] grid-cols-2 mb-8">
+                <TabsList className="grid w-full max-w-[600px] grid-cols-3 mb-8">
                     <TabsTrigger value="pipeline">Active Pipeline</TabsTrigger>
+                    <TabsTrigger value="manage-jobs">Manage Jobs</TabsTrigger>
                     <TabsTrigger value="post-job">Post New Job</TabsTrigger>
                 </TabsList>
 
@@ -27,6 +29,10 @@ export default function HRDashboard() {
 
                 <TabsContent value="post-job" className="mt-0">
                     <JobPostingForm />
+                </TabsContent>
+
+                <TabsContent value="manage-jobs" className="mt-0">
+                    <ManageJobs />
                 </TabsContent>
             </Tabs>
 
