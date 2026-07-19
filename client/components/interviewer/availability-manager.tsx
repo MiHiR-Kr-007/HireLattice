@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -23,6 +23,32 @@ export function AvailabilityManager() {
     const [isRecurring, setIsRecurring] = useState(false);
     const [weeksToRepeat, setWeeksToRepeat] = useState("4");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [calendarLinked, setCalendarLinked] = useState<boolean | null>(null);
+    const [isLinking, setIsLinking] = useState(false);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("calendarLinked") === "true") {
+            setCalendarLinked(true);
+            toast.success("Google Calendar connected successfully!");
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+            api.get("/auth/me").then(res => {
+                setCalendarLinked(res.data.user.calendarLinked);
+            }).catch(console.error);
+        }
+    }, []);
+
+    const handleLinkCalendar = async () => {
+        setIsLinking(true);
+        try {
+            const res = await api.get("/auth/google/calendar/link");
+            window.location.href = res.data.url;
+        } catch (error) {
+            toast.error("Failed to initiate calendar linking.");
+            setIsLinking(false);
+        }
+    };
 
     const handleSubmit = async () => {
         if (!date || !startTime || !endTime) {
@@ -80,6 +106,24 @@ export function AvailabilityManager() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+
+                {calendarLinked === false && (
+                    <div className="bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-200 p-4 rounded-lg flex items-center justify-between border border-orange-200 dark:border-orange-800/30">
+                        <div className="space-y-1">
+                            <p className="font-medium text-sm">Google Calendar Not Linked</p>
+                            <p className="text-xs opacity-90">Link your calendar so the system can schedule Google Meet interviews directly on your account.</p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={handleLinkCalendar} disabled={isLinking} className="shrink-0 bg-white dark:bg-black">
+                            {isLinking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Link Calendar"}
+                        </Button>
+                    </div>
+                )}
+                {calendarLinked === true && (
+                    <div className="bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 p-3 rounded-lg flex items-center gap-2 border border-green-200 dark:border-green-800/30 text-sm">
+                        <span>✅</span>
+                        <span className="font-medium">Connected to Google Calendar</span>
+                    </div>
+                )}
 
                 <div className="space-y-2">
                     <Label>Select Date</Label>

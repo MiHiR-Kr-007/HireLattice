@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FeedbackModal } from "./feedback-modal";
-import { Video, UserX } from "lucide-react";
+import { Video, UserX, FileText } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 
 interface Interview {
     interview_id: string;
@@ -19,6 +20,7 @@ interface Interview {
     job_title: string;
     start_time_utc: string;
     meet_link: string;
+    ai_match_report: any;
     status: "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "OFFERED";
 }
 
@@ -91,7 +93,51 @@ export function UpcomingQueue() {
                                     </a>
                                 </Button>
                             )}
-                            <Button 
+
+                            {interview.ai_match_report && (
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline">
+                                            <FileText className="h-4 w-4 mr-2 text-blue-500" />
+                                            AI Report
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>AI Match Report for {interview.candidate_name}</DialogTitle>
+                                            <DialogDescription>Automated pre-screening analysis.</DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                                            <div>
+                                                <h4 className="font-semibold text-sm">Fit Score</h4>
+                                                <p className="text-xl font-bold">{interview.ai_match_report.fit_score}/10</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-sm">Summary</h4>
+                                                <p className="text-sm text-muted-foreground">{interview.ai_match_report.summary}</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-sm">Matched Skills</h4>
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {interview.ai_match_report.matched_skills?.map((skill: string, i: number) => (
+                                                        <Badge key={i} variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">{skill}</Badge>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-sm">Missing Skills</h4>
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {interview.ai_match_report.missing_skills?.map((skill: string, i: number) => (
+                                                        <Badge key={i} variant="outline" className="text-xs text-red-500 border-red-200">{skill}</Badge>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
+                            
+                            <Button  
                                 variant="outline" 
                                 className="text-destructive hover:bg-destructive/10"
                                 onClick={() => handleNoShow(interview.interview_id)}

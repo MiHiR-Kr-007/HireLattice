@@ -161,3 +161,84 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
     res.clearCookie('token');
     res.status(200).json({ message: 'Logged out successfully' });
 };
+
+export const getGoogleCalendarOAuthUrl = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = (req as any).user.userId;
+        const client = new OAuth2Client(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
+        );
+
+        const url = client.generateAuthUrl({
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: ['https://www.googleapis.com/auth/calendar.events'],
+            state: userId.toString(),
+        });
+
+        res.status(200).json({ url });
+    } catch (error) {
+        console.error('Error generating Google OAuth URL:', error);
+        res.status(500).json({ error: 'Failed to generate OAuth URL' });
+    }
+};
+
+export const googleCalendarCallback = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const code = req.query.code as string;
+        const state = req.query.state as string;
+
+        if (!code || !state) {
+            res.status(400).send('Missing code or state');
+            return;
+        }
+
+        const userId = parseInt(state, 10);
+
+        const client = new OAuth2Client(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
+        );
+
+        const { tokens } = await client.getToken(code);
+
+        if (tokens.refresh_token) {
+            await pool.query('UPDATE users SET google_refresh_token = $1 WHERE id = $2', [tokens.refresh_token, userId]);
+        }
+
+        // Redirect back to frontend dashboard
+        res.redirect('http://localhost:3001/interviewer?calendarLinked=true');
+    } catch (error) {
+        console.error('Error handling Google OAuth callback:', error);
+        res.status(500).send('Authentication failed');
+    }
+};
+
+export const getMe = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = (req as any).user.userId;
+        const result = await pool.query('SELECT id, name, email, role, google_refresh_token FROM users WHERE id = $1', [userId]);
+
+        if (result.rowCount === 0) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        const user = result.rows[0];
+        res.status(200).json({
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                calendarLinked: !!user.google_refresh_token
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};

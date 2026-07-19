@@ -96,16 +96,18 @@ export const getUpcomingInterviews = async (req: Request, res: Response): Promis
             SELECT 
                 i.id AS interview_id,
                 i.status,
+                i.meet_link,
                 s.start_time_utc,
                 s.end_time_utc,
                 a.candidate_name,
                 a.candidate_email,
                 a.resume_url,
+                a.ai_match_report,
                 j.title AS job_title
             FROM interviews i
             JOIN availability_slots s ON i.slot_id = s.id
             JOIN LATERAL (
-                SELECT candidate_name, candidate_email, resume_url, job_id, status
+                SELECT candidate_name, candidate_email, resume_url, job_id, status, ai_match_report
                 FROM applications 
                 WHERE candidate_id = i.candidate_id 
                 ORDER BY id DESC LIMIT 1

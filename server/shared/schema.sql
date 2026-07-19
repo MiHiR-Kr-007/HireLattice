@@ -13,6 +13,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255),
     role user_role NOT NULL,
     reliability_score INTEGER DEFAULT 100 CHECK (reliability_score >= 0 AND reliability_score <= 100),
+    google_refresh_token VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -76,6 +77,7 @@ CREATE TABLE interviews (
     application_id INTEGER REFERENCES applications(id) ON DELETE CASCADE,
     status interview_status DEFAULT 'OFFERED',
     feedback JSONB NULL, 
+    meet_link VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

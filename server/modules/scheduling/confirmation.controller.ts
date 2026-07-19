@@ -59,7 +59,8 @@ export const handleCandidateResponse = async (req: Request, res: Response): Prom
                     i.email AS interviewer_email,
                     s.start_time_utc,
                     s.end_time_utc,
-                    j.title AS job_title
+                    j.title AS job_title,
+                    i.google_refresh_token
                 FROM availability_slots s
                 JOIN users i ON s.interviewer_id = i.id
                 JOIN users c ON c.id = $1
@@ -81,8 +82,13 @@ export const handleCandidateResponse = async (req: Request, res: Response): Prom
                     data.interviewer_email,
                     new Date(data.start_time_utc),
                     new Date(data.end_time_utc),
-                    data.job_title
-                ).catch(err => {
+                    data.job_title,
+                    data.google_refresh_token
+                ).then(meetLink => {
+                    if (meetLink) {
+                        pool.query('UPDATE interviews SET meet_link = $1 WHERE slot_id = $2 AND candidate_id = $3', [meetLink, slotId, candidateId]).catch(console.error);
+                    }
+                }).catch(err => {
                     console.error('Non-fatal error: Calendar sync failed after DB commit:', err);
                 });
             }

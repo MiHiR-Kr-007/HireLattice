@@ -23,9 +23,20 @@ export class CalendarService {
         interviewerEmail: string,
         startTime: Date,
         endTime: Date,
-        jobTitle: string
+        jobTitle: string,
+        interviewerRefreshToken?: string | null
     ): Promise<string | null> {
         try {
+            let activeCalendar = this.calendar;
+            if (interviewerRefreshToken) {
+                const client = new google.auth.OAuth2(
+                    process.env.GOOGLE_CLIENT_ID,
+                    process.env.GOOGLE_CLIENT_SECRET,
+                    process.env.GOOGLE_REDIRECT_URI
+                );
+                client.setCredentials({ refresh_token: interviewerRefreshToken });
+                activeCalendar = google.calendar({ version: 'v3', auth: client });
+            }
             const event: calendar_v3.Schema$Event = {
                 summary: `Interview: ${jobTitle}`,
                 description: `Technical interview for ${jobTitle}.\n\nPlease find the AI Match Report attached internally.`,
@@ -56,7 +67,7 @@ export class CalendarService {
                 }
             };
 
-            const response = await this.calendar.events.insert({
+            const response = await activeCalendar.events.insert({
                 calendarId: 'primary',
                 conferenceDataVersion: 1,
                 requestBody: event
