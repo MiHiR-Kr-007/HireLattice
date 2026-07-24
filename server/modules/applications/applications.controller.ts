@@ -81,15 +81,17 @@ export const getMyApplications = async (req: Request, res: Response): Promise<vo
                 a.status,
                 a.created_at,
                 i.status AS interview_status,
-                s.start_time_utc AS interview_time
+                s.start_time_utc,
+                i.id AS interview_id,
+                i.meet_link
             FROM applications a
             JOIN jobs j ON a.job_id = j.id
             LEFT JOIN LATERAL (
-                SELECT id, status, slot_id 
+                SELECT id, status, slot_id, meet_link 
                 FROM interviews 
                 WHERE candidate_id = a.candidate_id 
                 ORDER BY created_at DESC LIMIT 1
-            ) i ON a.status IN ('SCHEDULED', 'INTERVIEWED', 'HIRED', 'REJECTED')
+            ) i ON a.status IN ('SCHEDULED', 'INTERVIEWED', 'HIRED', 'REJECTED', 'CONFIRMED')
             LEFT JOIN availability_slots s ON i.slot_id = s.id
             WHERE a.candidate_id = $1
             ORDER BY a.created_at DESC

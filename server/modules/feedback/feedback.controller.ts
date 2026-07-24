@@ -21,7 +21,7 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
             `SELECT i.candidate_id, i.application_id 
              FROM interviews i
              JOIN availability_slots s ON i.slot_id = s.id
-             WHERE i.id = $1 AND s.interviewer_id = $2 AND (i.status = 'CONFIRMED' OR i.status = 'OFFERED')`,
+             WHERE i.id = $1 AND s.interviewer_id = $2 AND (i.status = 'CONFIRMED' OR i.status = 'OFFERED' OR i.status = 'INTERVIEWER_NO_SHOW_CLAIMED')`,
             [interviewId, interviewerId]
         );
 

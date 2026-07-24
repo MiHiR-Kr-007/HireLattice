@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -21,13 +21,20 @@ interface Interview {
     start_time_utc: string;
     meet_link: string;
     ai_match_report: any;
-    status: "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "OFFERED";
+    status: "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "OFFERED" | "INTERVIEWER_NO_SHOW_CLAIMED";
 }
 
 export function UpcomingQueue() {
     const queryClient = useQueryClient();
     const [selectedInterviewId, setSelectedInterviewId] = useState<string | null>(null);
     const [isReporting, setIsReporting] = useState<string | null>(null);
+    const [now, setNow] = useState(Date.now());
+
+    // update 'now' every minute to dynamically enable the No-Show button
+    useEffect(() => {
+        const interval = setInterval(() => setNow(Date.now()), 60000);
+        return () => clearInterval(interval);
+    }, []);
 
     const { data: interviews, isLoading } = useQuery<Interview[]>({
         queryKey: ["upcoming-interviews"],
@@ -39,7 +46,7 @@ export function UpcomingQueue() {
 
     const handleNoShow = async (interviewId: string) => {
         if (!confirm("Are you sure? This will penalize the candidate and boost your reliability score.")) return;
-        
+
         setIsReporting(interviewId);
         try {
             await api.post(`/interviews/${interviewId}/candidate-no-show`);
@@ -78,10 +85,18 @@ export function UpcomingQueue() {
                             <div className="flex items-center gap-2">
                                 <h3 className="font-semibold text-lg">{interview.candidate_name}</h3>
                                 <Badge variant="secondary">{interview.job_title}</Badge>
+                                {interview.status === "INTERVIEWER_NO_SHOW_CLAIMED" && (
+                                    <Badge variant="destructive" className="ml-2">Candidate Claimed No-Show</Badge>
+                                )}
                             </div>
                             <p className="text-muted-foreground text-sm">
                                 {format(new Date(interview.start_time_utc), "EEEE, MMMM do • h:mm a")}
                             </p>
+                            {interview.status === "INTERVIEWER_NO_SHOW_CLAIMED" && (
+                                <p className="text-xs text-destructive mt-1 font-medium">
+                                    Submit feedback to override this claim and verify attendance.
+                                </p>
+                            )}
                         </div>
 
                         <div className="flex flex-wrap gap-2">
@@ -136,12 +151,13 @@ export function UpcomingQueue() {
                                     </DialogContent>
                                 </Dialog>
                             )}
-                            
-                            <Button  
-                                variant="outline" 
+
+                            <Button
+                                variant="outline"
                                 className="text-destructive hover:bg-destructive/10"
                                 onClick={() => handleNoShow(interview.interview_id)}
-                                disabled={isReporting === interview.interview_id}
+                                disabled={isReporting === interview.interview_id || now < new Date(interview.start_time_utc).getTime() + 15 * 60000}
+                                title={now < new Date(interview.start_time_utc).getTime() + 15 * 60000 ? "Available 15 minutes after interview starts" : ""}
                             >
                                 <UserX className="h-4 w-4 mr-2" />
                                 No-Show
@@ -154,7 +170,7 @@ export function UpcomingQueue() {
                 </Card>
             ))}
 
-            <FeedbackModal 
+            <FeedbackModal
                 interviewId={selectedInterviewId}
                 isOpen={!!selectedInterviewId}
                 onClose={() => setSelectedInterviewId(null)}

@@ -22,6 +22,7 @@ export function AvailabilityManager() {
     const [endTime, setEndTime] = useState("");
     const [isRecurring, setIsRecurring] = useState(false);
     const [weeksToRepeat, setWeeksToRepeat] = useState("4");
+    const [timezoneIana, setTimezoneIana] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [calendarLinked, setCalendarLinked] = useState<boolean | null>(null);
     const [isLinking, setIsLinking] = useState(false);
@@ -71,8 +72,6 @@ export function AvailabilityManager() {
                 setIsSubmitting(false);
                 return;
             }
-
-            const timezoneIana = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
             await api.post("/scheduling/slots", {
                 start_time: slotStartDateTime.toISOString(),
@@ -170,6 +169,20 @@ export function AvailabilityManager() {
                             className="w-full"
                         />
                     </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label>Timezone</Label>
+                    <Select value={timezoneIana} onValueChange={setTimezoneIana}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select Timezone" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                            {Intl.supportedValuesOf('timeZone').map(tz => (
+                                <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">

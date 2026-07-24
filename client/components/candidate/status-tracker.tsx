@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ interface CandidateStatus {
     created_at: string;
     interview_id?: string;
     meet_link?: string;
+    start_time_utc?: string;
 }
 
 const STATUS_STEPS = ["APPLIED", "RANKED", "SCHEDULED", "INTERVIEWED", "DECISION"];
@@ -27,6 +28,12 @@ const STATUS_STEPS = ["APPLIED", "RANKED", "SCHEDULED", "INTERVIEWED", "DECISION
 export function StatusTracker() {
     const [isReporting, setIsReporting] = useState<string | null>(null);
     const [selectedApp, setSelectedApp] = useState<CandidateStatus | null>(null);
+    const [now, setNow] = useState(Date.now());
+
+    useEffect(() => {
+        const interval = setInterval(() => setNow(Date.now()), 60000);
+        return () => clearInterval(interval);
+    }, []);
 
     const { data: applications, isLoading } = useQuery<CandidateStatus[]>({
         queryKey: ["candidate-status"],
@@ -166,7 +173,8 @@ export function StatusTracker() {
                                                     variant="outline" 
                                                     className="text-destructive hover:bg-destructive/10" 
                                                     onClick={() => handleInterviewerNoShow(selectedApp.interview_id!)} 
-                                                    disabled={isReporting === selectedApp.interview_id}
+                                                    disabled={isReporting === selectedApp.interview_id || (selectedApp.start_time_utc ? now < new Date(selectedApp.start_time_utc).getTime() + 15 * 60000 : false)}
+                                                    title={selectedApp.start_time_utc && now < new Date(selectedApp.start_time_utc).getTime() + 15 * 60000 ? "Available 15 minutes after interview starts" : ""}
                                                 >
                                                     <VideoOff className="h-4 w-4 mr-2" />
                                                     Report Interviewer No-Show

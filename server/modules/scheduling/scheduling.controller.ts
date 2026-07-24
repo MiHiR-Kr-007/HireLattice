@@ -114,7 +114,7 @@ export const getUpcomingInterviews = async (req: Request, res: Response): Promis
             ) a ON true
             JOIN jobs j ON a.job_id = j.id
             WHERE s.interviewer_id = $1 
-              AND i.status IN ('CONFIRMED', 'OFFERED')
+              AND i.status IN ('CONFIRMED', 'OFFERED', 'INTERVIEWER_NO_SHOW_CLAIMED')
             ORDER BY s.start_time_utc ASC
         `;
 
