@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { fromZonedTime } from 'date-fns-tz';
 import { addWeeks } from 'date-fns';
 import crypto from 'crypto';
+import { matchmakingQueue } from '../../queues/matchmaker.queue.js';
 
 const createSlotSchema = z.object({
     start_time: z.string(),
@@ -61,8 +62,27 @@ export const createAvailabilitySlots = async (req: Request, res: Response): Prom
 
             await client.query('COMMIT');
 
+            //Wake up stalled candidates
+            const pendingQuery = `
+                SELECT a.candidate_id, a.job_id, a.match_score 
+                FROM applications a
+                JOIN interviewer_pools ip ON ip.job_id = a.job_id
+                JOIN pool_members pm ON pm.pool_id = ip.id
+                WHERE (a.status = 'RANKED' OR a.status = 'STALLED_NO_SLOTS')
+                  AND pm.interviewer_id = $1
+            `;
+            const pending = await pool.query(pendingQuery, [interviewerId]);
+
+            for (const cand of pending.rows) {
+                await matchmakingQueue.add('rematch-candidate', {
+                    candidateId: cand.candidate_id,
+                    jobId: cand.job_id,
+                    rankScore: cand.match_score ? parseFloat(cand.match_score) : 0
+                });
+            }
+
             res.status(201).json({
-                message: `Successfully created ${totalWeeks} slot(s)`,
+                message: `Successfully created ${totalWeeks} slot(s). Auto-triggered matchmaking for ${pending.rows.length} stalled candidate(s).`,
                 recurrence_group: recurrenceGroupId
             });
 

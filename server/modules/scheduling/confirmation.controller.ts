@@ -87,9 +87,12 @@ export const handleCandidateResponse = async (req: Request, res: Response): Prom
                     new Date(data.end_time_utc),
                     data.job_title,
                     data.google_refresh_token
-                ).then(async meetLink => {
-                    if (meetLink) {
-                        pool.query('UPDATE interviews SET meet_link = $1 WHERE slot_id = $2 AND candidate_id = $3', [meetLink, slotId, candidateId]).catch(console.error);
+                ).then(async ({ meetLink, eventId }) => {
+                    if (meetLink || eventId) {
+                        pool.query(
+                            'UPDATE interviews SET meet_link = $1, google_event_id = $2 WHERE slot_id = $3 AND candidate_id = $4', 
+                            [meetLink, eventId, slotId, candidateId]
+                        ).catch(console.error);
                     }
 
                     // Enqueue Immediate Confirmation Email

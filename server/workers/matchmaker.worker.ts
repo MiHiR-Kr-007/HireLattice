@@ -21,19 +21,22 @@ export const matchmakerWorker = new Worker<MatchmakerJobData>(
         try {
             await client.query('BEGIN');
 
-            // find an available slot. For now, match any interviewer's slot.
+            // find an available slot. Match only interviewers assigned to this job's pool.
             const slotQuery = `
                 SELECT s.id as slot_id, s.interviewer_id, u.reliability_score
                 FROM availability_slots s
                 JOIN users u ON u.id = s.interviewer_id
+                JOIN pool_members pm ON pm.interviewer_id = s.interviewer_id
+                JOIN interviewer_pools ip ON ip.id = pm.pool_id
                 WHERE s.status = 'AVAILABLE' 
                   AND s.start_time_utc > CURRENT_TIMESTAMP
+                  AND ip.job_id = $1
                 ORDER BY u.reliability_score DESC, s.start_time_utc ASC
                 LIMIT 1
                 FOR UPDATE SKIP LOCKED; -- Advanced Row-Level Locking to handle simultaneous workers safely
             `;
 
-            const slotResult = await client.query(slotQuery);
+            const slotResult = await client.query(slotQuery, [jobId]);
 
             // No slots found
             if (slotResult.rows.length === 0) {

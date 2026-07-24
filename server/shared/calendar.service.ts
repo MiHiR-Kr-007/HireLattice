@@ -25,7 +25,7 @@ export class CalendarService {
         endTime: Date,
         jobTitle: string,
         interviewerRefreshToken?: string | null
-    ): Promise<string | null> {
+    ): Promise<{ meetLink: string | null; eventId: string | null }> {
         try {
             let activeCalendar = this.calendar;
             if (interviewerRefreshToken) {
@@ -74,7 +74,10 @@ export class CalendarService {
             });
 
             console.log(`Calendar event created: ${response.data.htmlLink}`);
-            return response.data.hangoutLink || response.data.htmlLink || null;
+            return {
+                meetLink: response.data.hangoutLink || response.data.htmlLink || null,
+                eventId: response.data.id || null
+            };
 
         } catch (error) {
             console.error('Failed to create Google Calendar event:', error);
