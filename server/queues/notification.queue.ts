@@ -2,11 +2,15 @@ import { Queue } from 'bullmq';
 import { redisConnection } from '../shared/redis.js';
 
 export interface NotificationJobData {
-    candidateId: string;
+    type: 'DECISION' | 'INTERVIEW_CONFIRMED' | 'INTERVIEW_REMINDER';
+    candidateId?: string;
     candidateName: string;
     candidateEmail: string;
-    jobId: string;
-    decision: 'HIRED' | 'REJECTED';
+    jobId?: string;
+    decision?: 'HIRED' | 'REJECTED';
+    interviewerName?: string;
+    startTime?: string;
+    meetLink?: string;
 }
 
 export const notificationQueue = new Queue<NotificationJobData>('notification-queue', {

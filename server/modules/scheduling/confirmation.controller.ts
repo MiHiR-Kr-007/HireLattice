@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { pool } from '../../shared/db.js';
 import { redisClient } from '../../shared/redis.js';
 import { calendarService } from '../../shared/calendar.service.js'; 
+import { notificationQueue } from '../../queues/notification.queue.js';
 import { z } from 'zod';
 
 const responseSchema = z.object({
@@ -56,7 +57,9 @@ export const handleCandidateResponse = async (req: Request, res: Response): Prom
             const metadataQuery = `
                 SELECT 
                     c.email AS candidate_email,
+                    c.name AS candidate_name,
                     i.email AS interviewer_email,
+                    i.name AS interviewer_name,
                     s.start_time_utc,
                     s.end_time_utc,
                     j.title AS job_title,
@@ -84,10 +87,50 @@ export const handleCandidateResponse = async (req: Request, res: Response): Prom
                     new Date(data.end_time_utc),
                     data.job_title,
                     data.google_refresh_token
-                ).then(meetLink => {
+                ).then(async meetLink => {
                     if (meetLink) {
                         pool.query('UPDATE interviews SET meet_link = $1 WHERE slot_id = $2 AND candidate_id = $3', [meetLink, slotId, candidateId]).catch(console.error);
                     }
+
+                    // Enqueue Immediate Confirmation Email
+                    await notificationQueue.add('interview-confirmed', {
+                        type: 'INTERVIEW_CONFIRMED',
+                        candidateName: data.candidate_name,
+                        candidateEmail: data.candidate_email,
+                        interviewerName: data.interviewer_name,
+                        startTime: data.start_time_utc,
+                        meetLink: meetLink || 'Link will be provided soon'
+                    });
+
+                    const startTimeMs = new Date(data.start_time_utc).getTime();
+                    const nowMs = Date.now();
+                    const oneHourMs = 60 * 60 * 1000;
+                    const tenMinMs = 10 * 60 * 1000;
+
+                    // Enqueue 1-hour reminder
+                    if (startTimeMs - oneHourMs > nowMs) {
+                        await notificationQueue.add('interview-reminder-1hr', {
+                            type: 'INTERVIEW_REMINDER',
+                            candidateName: data.candidate_name,
+                            candidateEmail: data.candidate_email,
+                            interviewerName: data.interviewer_name,
+                            startTime: data.start_time_utc,
+                            meetLink: meetLink || 'Link will be provided soon'
+                        }, { delay: startTimeMs - oneHourMs - nowMs });
+                    }
+
+                    // Enqueue 10-minute reminder
+                    if (startTimeMs - tenMinMs > nowMs) {
+                        await notificationQueue.add('interview-reminder-10min', {
+                            type: 'INTERVIEW_REMINDER',
+                            candidateName: data.candidate_name,
+                            candidateEmail: data.candidate_email,
+                            interviewerName: data.interviewer_name,
+                            startTime: data.start_time_utc,
+                            meetLink: meetLink || 'Link will be provided soon'
+                        }, { delay: startTimeMs - tenMinMs - nowMs });
+                    }
+
                 }).catch(err => {
                     console.error('Non-fatal error: Calendar sync failed after DB commit:', err);
                 });

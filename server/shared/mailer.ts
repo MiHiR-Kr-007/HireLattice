@@ -14,16 +14,17 @@ interface EmailPayload {
     to: string;
     subject: string;
     body: string;
+    html?: string;
 }
 
-export const sendEmail = async ({ to, subject, body }: EmailPayload): Promise<void> => {
+export const sendEmail = async ({ to, subject, body, html }: EmailPayload): Promise<void> => {
     try {
         const info = await transporter.sendMail({
             from: process.env.FROM_EMAIL || '"HireLattice" <noreply@hirelattice.com>',
             to,
             subject,
             text: body,
-            // html: `<b>${body}</b>`,
+            html: html || `<div>${body}</div>`,
         });
 
         console.log(`[Mailer] Message sent successfully to ${to} (Message ID: ${info.messageId})`);
