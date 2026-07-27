@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,7 @@ import * as z from "zod";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import Link from "next/link";
+import { GoogleLogin } from "@react-oauth/google";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,21 @@ export default function RegisterPage() {
         },
     });
 
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                const res = await api.get("/auth/me");
+                const role = res.data.user.role;
+                if (role === "HR") router.push("/hr");
+                else if (role === "INTERVIEWER") router.push("/interviewer");
+                else if (role === "CANDIDATE") router.push("/candidate");
+            } catch {
+                // Not logged in, stay on register page
+            }
+        };
+        checkAuth();
+    }, [router]);
+
     const onSubmit = async (data: RegisterFormValues) => {
         setIsLoading(true);
         try {
@@ -60,6 +76,30 @@ export default function RegisterPage() {
             toast.error(
                 error.response?.data?.error || "Registration failed. Please try again."
             );
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const onGoogleSuccess = async (credentialResponse: any) => {
+        setIsLoading(true);
+        try {
+            const currentRole = form.getValues().role;
+            const response = await api.post("/auth/google", {
+                idToken: credentialResponse.credential,
+                targetRole: currentRole
+            });
+            const { user } = response.data;
+            const userRole = user.role; 
+            localStorage.setItem("userRole", userRole);
+            toast.success("Google Authentication successful! Redirecting...");
+            
+            if (userRole === "HR") router.push("/hr");
+            else if (userRole === "INTERVIEWER") router.push("/interviewer");
+            else if (userRole === "CANDIDATE") router.push("/candidate");
+            else router.push("/"); 
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || "Google auth failed. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -152,6 +192,13 @@ export default function RegisterPage() {
                             </Button>
                         </form>
                     </Form>
+                    
+                    <div className="mt-6 flex items-center justify-center">
+                        <GoogleLogin
+                            onSuccess={onGoogleSuccess}
+                            onError={() => toast.error("Google auth failed")}
+                        />
+                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-center">
                     <p className="text-sm text-muted-foreground">

@@ -218,6 +218,9 @@ export const googleCalendarCallback = async (req: Request, res: Response): Promi
 };
 
 export const getMe = async (req: Request, res: Response): Promise<void> => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     try {
         const userId = (req as any).user.userId;
         const result = await pool.query('SELECT id, name, email, role, google_refresh_token FROM users WHERE id = $1', [userId]);

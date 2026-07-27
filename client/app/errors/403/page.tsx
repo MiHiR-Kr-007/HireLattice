@@ -1,3 +1,5 @@
+"use client";
+
 import { ErrorTemplate } from "@/components/ui/error-template";
 import { ShieldAlert } from "lucide-react";
 

@@ -15,7 +15,7 @@ interface ErrorTemplateProps {
     Icon: LucideIcon;
     buttonText?: string;
     buttonLink?: string;
-    themeClass?: string; // e.g. 'text-primary bg-primary/10' or 'text-destructive bg-destructive/10'
+    themeClass?: string;
 }
 
 export function ErrorTemplate({
@@ -46,7 +46,7 @@ export function ErrorTemplate({
                         priority
                     />
                 </div>
-                
+
                 <div className="space-y-3">
                     <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full font-medium text-sm mb-2 ${themeClass}`}>
                         <Icon className="w-4 h-4" />
