@@ -91,7 +91,7 @@ export const getMyApplications = async (req: Request, res: Response): Promise<vo
                 FROM interviews 
                 WHERE candidate_id = a.candidate_id 
                 ORDER BY created_at DESC LIMIT 1
-            ) i ON a.status IN ('SCHEDULED', 'INTERVIEWED', 'HIRED', 'REJECTED', 'CONFIRMED')
+            ) i ON a.status IN ('SCHEDULED', 'INTERVIEWED', 'HIRED', 'REJECTED')
             LEFT JOIN availability_slots s ON i.slot_id = s.id
             WHERE a.candidate_id = $1
             ORDER BY a.created_at DESC

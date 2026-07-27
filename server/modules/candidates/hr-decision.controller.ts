@@ -118,6 +118,7 @@ export const makeFinalDecision = async (req: Request, res: Response): Promise<vo
         const candidate = updateResult.rows[0];
 
         await notificationQueue.add('send-decision-email', {
+            type: 'DECISION',
             candidateId: String(id),
             candidateName: candidate.candidate_name,
             candidateEmail: candidate.candidate_email,

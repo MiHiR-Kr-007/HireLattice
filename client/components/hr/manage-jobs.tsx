@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Users } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FormLabel } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 
 export function ManageJobs() {
     const [selectedJob, setSelectedJob] = useState<number | null>(null);
@@ -136,7 +136,7 @@ function EditInterviewersDialog({ jobId, isOpen, onClose }: { jobId: number, isO
                                 checked={selectAll} 
                                 onCheckedChange={(c) => setSelectAll(c === true)} 
                             />
-                            <FormLabel htmlFor="selectAll" className="cursor-pointer">Select All Interviewers</FormLabel>
+                            <Label htmlFor="selectAll" className="cursor-pointer">Select All Interviewers</Label>
                         </div>
                         
                         {!selectAll && (
@@ -152,9 +152,9 @@ function EditInterviewersDialog({ jobId, isOpen, onClose }: { jobId: number, isO
                                                     else setSelectedIds(selectedIds.filter(id => id !== inv.id));
                                                 }}
                                             />
-                                            <FormLabel htmlFor={`inv-${inv.id}`} className="cursor-pointer font-normal">
+                                            <Label htmlFor={`inv-${inv.id}`} className="cursor-pointer font-normal">
                                                 {inv.name} <span className="text-xs text-muted-foreground">({inv.email})</span>
-                                            </FormLabel>
+                                            </Label>
                                         </div>
                                     ))}
                                     {allInterviewers?.length === 0 && <p className="text-sm text-muted-foreground p-2">No interviewers found.</p>}

@@ -9,6 +9,7 @@ export const pool = new Pool({
     database: process.env.DB_NAME || 'hirelattice',
     password: process.env.DB_PASSWORD || 'password',
     port: parseInt(process.env.DB_PORT || '5432', 10),
+    ssl: process.env.DB_HOST === 'localhost' ? false : { rejectUnauthorized: false },
 });
 
 pool.on('error', (err, client) => {
