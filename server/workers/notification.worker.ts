@@ -6,7 +6,7 @@ import { sendEmail } from '../shared/mailer.js';
 export const notificationWorker = new Worker<NotificationJobData>(
     'notification-queue',
     async (job: Job<NotificationJobData>) => {
-        const { type, candidateName, candidateEmail, decision, interviewerName, startTime, meetLink } = job.data;
+        const { type, candidateName, candidateEmail, decision, rejectionReason, interviewerName, startTime, meetLink } = job.data;
 
         console.log(`[Notification Worker] Processing ${type} email for ${candidateName} (${candidateEmail})`);
 
@@ -38,12 +38,20 @@ export const notificationWorker = new Worker<NotificationJobData>(
                 } else {
                     subject = 'Update regarding your application at HireFlow';
                     body = `Dear ${candidateName}, Thank you for taking the time to interview with us. After careful consideration, we have decided to move forward with other candidates whose qualifications better meet our current needs. We appreciate your interest and wish you the best in your career.`;
+                    
+                    const rejectionSection = rejectionReason 
+                        ? `<div style="background-color: #F8FAFC; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #94A3B8;">
+                               <p style="color: #475569; font-size: 15px; margin: 0;"><strong>Specific Feedback:</strong><br/>${rejectionReason}</p>
+                           </div>` 
+                        : '';
+
                     html = `
                         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
                             <h2 style="color: #1E293B; font-size: 20px; font-weight: 600;">Application Update</h2>
                             <p style="color: #475569; font-size: 16px; line-height: 1.6;">Dear ${candidateName},</p>
                             <p style="color: #475569; font-size: 16px; line-height: 1.6;">Thank you for taking the time to speak with our team and for your interest in joining us. We sincerely appreciate the effort you put into the interview process.</p>
                             <p style="color: #475569; font-size: 16px; line-height: 1.6;">After careful consideration of your application and interviews, we have decided to move forward with another candidate whose qualifications more closely match the specific needs of the role at this time.</p>
+                            ${rejectionSection}
                             <p style="color: #475569; font-size: 16px; line-height: 1.6;">This was a difficult decision, as our team truly enjoyed getting to know you. We were impressed by your background and encourage you to keep an eye on our careers page for future opportunities that might be a good fit.</p>
                             <p style="color: #475569; font-size: 16px; line-height: 1.6;">We wish you all the best in your job search and your future professional endeavors.</p>
                             <p style="color: #94A3B8; font-size: 14px; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">Sincerely,<br><strong>The HireFlow Team</strong></p>

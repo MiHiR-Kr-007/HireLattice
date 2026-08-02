@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Sparkles, UserCheck, CheckCircle2, XCircle } from "lucide-react";
@@ -27,6 +28,7 @@ interface DecisionModalProps {
 
 export function DecisionModal({ candidateId, isOpen, onClose, onDecisionMade }: DecisionModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState("");
 
     const { data: details, isLoading } = useQuery({
         queryKey: ["candidate-details", candidateId],
@@ -40,7 +42,10 @@ export function DecisionModal({ candidateId, isOpen, onClose, onDecisionMade }: 
     const handleDecision = async (decision: "HIRED" | "REJECTED") => {
         setIsSubmitting(true);
         try {
-            await api.post(`/candidates/${candidateId}/decision`, { final_decision: decision });
+            await api.post(`/candidates/${candidateId}/decision`, { 
+                final_decision: decision,
+                rejection_reason: decision === "REJECTED" ? rejectionReason : undefined
+            });
             toast.success(`Candidate has been ${decision.toLowerCase()}!`);
             onDecisionMade();
             onClose();
@@ -169,30 +174,47 @@ export function DecisionModal({ candidateId, isOpen, onClose, onDecisionMade }: 
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-4 bg-background border-t flex justify-end gap-3">
-                    <Button
-                        variant="outline"
-                        onClick={() => onClose()}
-                        disabled={isSubmitting}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="destructive"
-                        onClick={() => handleDecision("REJECTED")}
-                        disabled={isSubmitting || isLoading}
-                    >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Reject
-                    </Button>
-                    <Button
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        onClick={() => handleDecision("HIRED")}
-                        disabled={isSubmitting || isLoading}
-                    >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Hire Candidate
-                    </Button>
+                <div className="p-4 bg-background border-t space-y-4">
+                    <div className="flex flex-col space-y-2">
+                        <label className="text-sm font-medium text-muted-foreground">
+                            Optional Rejection Feedback (Will be sent to the candidate in the email if rejected)
+                        </label>
+                        <Textarea
+                            placeholder="e.g., We were looking for someone with more React experience..."
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                            disabled={isSubmitting || isLoading}
+                            className="resize-none h-16"
+                        />
+                    </div>
+                    <div className="flex justify-end gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setRejectionReason("");
+                                onClose();
+                            }}
+                            disabled={isSubmitting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => handleDecision("REJECTED")}
+                            disabled={isSubmitting || isLoading}
+                        >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Reject
+                        </Button>
+                        <Button
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={() => handleDecision("HIRED")}
+                            disabled={isSubmitting || isLoading}
+                        >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Hire Candidate
+                        </Button>
+                    </div>
                 </div>
 
             </DialogContent>

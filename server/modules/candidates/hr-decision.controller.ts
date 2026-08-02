@@ -92,7 +92,7 @@ export const getCandidateById = async (req: Request, res: Response): Promise<voi
 
 export const makeFinalDecision = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const { final_decision } = req.body;
+    const { final_decision, rejection_reason } = req.body;
 
     if (!['HIRED', 'REJECTED'].includes(final_decision)) {
         res.status(400).json({ error: 'Decision must be HIRED or REJECTED' });
@@ -123,7 +123,8 @@ export const makeFinalDecision = async (req: Request, res: Response): Promise<vo
             candidateName: candidate.candidate_name,
             candidateEmail: candidate.candidate_email,
             jobId: String(candidate.job_id),
-            decision: final_decision
+            decision: final_decision,
+            rejectionReason: rejection_reason
         }, {
             attempts: 3,
             backoff: {

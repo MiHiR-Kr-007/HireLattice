@@ -8,6 +8,7 @@ export interface NotificationJobData {
     candidateEmail: string;
     jobId?: string;
     decision?: 'HIRED' | 'REJECTED';
+    rejectionReason?: string;
     interviewerName?: string;
     startTime?: string;
     meetLink?: string;
