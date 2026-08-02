@@ -3,6 +3,7 @@ import { redisConnection } from '../shared/redis.js';
 import { pool } from '../shared/db.js';
 import { AI_RANKING_QUEUE } from '../queues/ai.queue.js';
 import { matchmakingQueue } from '../queues/matchmaker.queue.js';
+import { notificationQueue } from '../queues/notification.queue.js';
 import { PDFParse } from 'pdf-parse';
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
@@ -42,35 +43,48 @@ export const aiWorker = new Worker(AI_RANKING_QUEUE, async (job: Job) => {
 
         const matchReport = await aiResponse.json();
 
+        const newStatus = matchReport.fit_score >= 7 ? 'RANKED' : 'REJECTED';
+
         const updateAppQuery = `
             UPDATE applications 
-            SET status = 'RANKED', 
-                match_score = $1, 
-                ai_match_report = $2
-            WHERE id = $3
+            SET status = $1, 
+                match_score = $2, 
+                ai_match_report = $3
+            WHERE id = $4
+            RETURNING candidate_id, candidate_name, candidate_email
         `;
         
-        await pool.query(updateAppQuery, [
+        const updateResult = await pool.query(updateAppQuery, [
+            newStatus,
             matchReport.fit_score,
             JSON.stringify(matchReport),
             applicationId
         ]);
 
-        console.log(`[Worker] Successfully ranked Application ${applicationId}`);
+        const appData = updateResult.rows[0];
+
+        console.log(`[Worker] Successfully ranked Application ${applicationId}. Score: ${matchReport.fit_score}`);
 
         if (matchReport.fit_score >= 7) {
             console.log(`[Worker] Score >= 7. Queueing Application ${applicationId} for scheduling...`);
             
-            const appQuery = await pool.query('SELECT candidate_id FROM applications WHERE id = $1', [applicationId]);
-            const candidateId = appQuery.rows[0].candidate_id;
-
             await matchmakingQueue.add('schedule-interview', {
-                candidateId,
+                candidateId: appData.candidate_id,
                 jobId,
                 rankScore: matchReport.fit_score
             });
         } else {
-            console.log(`[Worker] Score < 7. Application ${applicationId} will stay in RANKED state for manual review.`);
+            console.log(`[Worker] Score < 7. Application ${applicationId} REJECTED. Sending email.`);
+            
+            await notificationQueue.add('send-decision-email', {
+                type: 'DECISION',
+                candidateId: String(appData.candidate_id),
+                candidateName: appData.candidate_name,
+                candidateEmail: appData.candidate_email,
+                jobId: String(jobId),
+                decision: 'REJECTED',
+                rejectionReason: matchReport.summary || "Your profile doesn't match the required skills for this role."
+            });
         }
 
     } catch (error) {
