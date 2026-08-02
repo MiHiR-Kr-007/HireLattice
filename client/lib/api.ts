@@ -17,7 +17,7 @@ api.interceptors.response.use(
             if (status === 400) {
                 window.location.href = "/errors/400";
             } else if (status === 401) {
-                if (!error.config.url.includes("/login")) {
+                if (!error.config.url.includes("/login") && !error.config.url.includes("/auth/me")) {
                     window.location.href = "/errors/401";
                 }
             } else if (status === 403) {

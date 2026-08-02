@@ -9,13 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Users } from "lucide-react";
+import { Loader2, Users, CheckCircle2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 
 export function ManageJobs() {
     const [selectedJob, setSelectedJob] = useState<number | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const queryClient = useQueryClient();
 
     const { data: jobs, isLoading: isJobsLoading } = useQuery({
         queryKey: ["jobs"],
@@ -29,6 +30,19 @@ export function ManageJobs() {
         setSelectedJob(jobId);
         setIsDialogOpen(true);
     };
+
+    const closeJobMutation = useMutation({
+        mutationFn: async (jobId: number) => {
+            return api.put(`/jobs/${jobId}/status`, { status: "CLOSED" });
+        },
+        onSuccess: () => {
+            toast.success("Job closed successfully");
+            queryClient.invalidateQueries({ queryKey: ["jobs"] });
+        },
+        onError: () => {
+            toast.error("Failed to close job");
+        }
+    });
 
     if (isJobsLoading) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
@@ -49,7 +63,18 @@ export function ManageJobs() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex justify-end mt-4">
+                        <div className="flex justify-end mt-4 gap-2">
+                            {job.status === 'OPEN' && (
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => closeJobMutation.mutate(job.id)}
+                                    disabled={closeJobMutation.isPending}
+                                >
+                                    {closeJobMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                                    Close Job
+                                </Button>
+                            )}
                             <Button variant="secondary" size="sm" onClick={() => openEditInterviewers(job.id)}>
                                 <Users className="h-4 w-4 mr-2" />
                                 Manage Interviewers
