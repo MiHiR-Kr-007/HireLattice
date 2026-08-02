@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { pool } from '../../shared/db.js';
+import fs from 'fs';
+import { PDFParse } from 'pdf-parse';
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
@@ -91,12 +93,21 @@ export const createJob = async (req: Request, res: Response): Promise<void> => {
 
 export const getOpenJobs = async (req: Request, res: Response): Promise<void> => {
     try {
-        const query = `
-            SELECT id, title, description, status, created_at
-            FROM jobs
-            WHERE status = 'OPEN'
-            ORDER BY created_at DESC
-        `;
+        let query = '';
+        if (req.user?.role === 'HR') {
+            query = `
+                SELECT id, title, description, status, created_at
+                FROM jobs
+                ORDER BY created_at DESC
+            `;
+        } else {
+            query = `
+                SELECT id, title, description, status, created_at
+                FROM jobs
+                WHERE status = 'OPEN'
+                ORDER BY created_at DESC
+            `;
+        }
         const result = await pool.query(query);
         res.status(200).json(result.rows);
     } catch (error) {
@@ -139,7 +150,7 @@ export const updateJobInterviewers = async (req: Request, res: Response): Promis
 
     try {
         await client.query('BEGIN');
-        
+
         let poolResult = await client.query('SELECT id FROM interviewer_pools WHERE job_id = $1', [jobId]);
         let poolId;
         if (poolResult.rowCount === 0) {
@@ -170,5 +181,69 @@ export const updateJobInterviewers = async (req: Request, res: Response): Promis
         res.status(500).json({ error: 'Failed to update interviewers' });
     } finally {
         client.release();
+    }
+};
+
+export const searchSemanticJobs = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (!req.file) {
+            res.status(400).json({ error: 'No resume file uploaded' });
+            return;
+        }
+
+        const dataBuffer = fs.readFileSync(req.file.path);
+        const parser = new PDFParse({ data: dataBuffer });
+        const textResult = await parser.getText();
+        const resumeText = textResult.text;
+
+        // Clean up the uploaded file
+        fs.unlinkSync(req.file.path);
+
+        const aiResponse = await fetch(`${AI_SERVICE_URL}/api/ai/jobs/search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resume_text: resumeText })
+        });
+
+        if (!aiResponse.ok) {
+            const aiError = await aiResponse.text();
+            throw new Error(`AI Service search failed: ${aiError}`);
+        }
+
+        const data = await aiResponse.json();
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error in semantic search:', error);
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ error: 'Failed to perform semantic search' });
+    }
+};
+
+export const updateJobStatus = async (req: Request, res: Response): Promise<void> => {
+    const jobId = parseInt(req.params.id as string);
+    const { status } = req.body;
+
+    if (!status || !['OPEN', 'CLOSED'].includes(status)) {
+        res.status(400).json({ error: 'Invalid or missing status. Must be OPEN or CLOSED.' });
+        return;
+    }
+
+    try {
+        const result = await pool.query(
+            'UPDATE jobs SET status = $1 WHERE id = $2 RETURNING id, status',
+            [status, jobId]
+        );
+
+        if (result.rowCount === 0) {
+            res.status(404).json({ error: 'Job not found' });
+            return;
+        }
+
+        res.status(200).json({ message: 'Job status updated successfully', job: result.rows[0] });
+    } catch (error) {
+        console.error('Error updating job status:', error);
+        res.status(500).json({ error: 'Failed to update job status' });
     }
 };
