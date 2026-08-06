@@ -1,9 +1,10 @@
+import 'dotenv/config';
+
 import './workers/ai.worker.js';
 import './workers/matchmaker.worker.js';
 import './workers/notification.worker.js';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 
 import authRoutes from './modules/auth/auth.routes.js';
 import jobRoutes from './modules/jobs/jobs.routes.js';
@@ -12,8 +13,6 @@ import schedulingRoutes from './modules/scheduling/scheduling.routes.js';
 import interviewRoutes from './modules/interviews/interviews.routes.js';
 import candidateRoutes from './modules/candidates/candidates.routes.js';
 import cookieParser from 'cookie-parser';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;

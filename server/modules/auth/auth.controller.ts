@@ -226,7 +226,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
         const result = await pool.query('SELECT id, name, email, role, google_refresh_token FROM users WHERE id = $1', [userId]);
 
         if (result.rowCount === 0) {
-            res.status(404).json({ error: 'User not found' });
+            res.status(401).json({ error: 'User not found' });
             return;
         }
 
