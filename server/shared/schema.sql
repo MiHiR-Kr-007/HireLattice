@@ -40,6 +40,8 @@ CREATE TABLE applications (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX applications_status_idx ON applications (status);
+
 CREATE TABLE interviewer_pools (
     id SERIAL PRIMARY KEY,
     job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
