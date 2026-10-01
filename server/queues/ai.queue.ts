@@ -5,4 +5,8 @@ export const AI_RANKING_QUEUE = 'ai-ranking-queue';
 
 export const aiQueue = new Queue(AI_RANKING_QUEUE, {
     connection: redisConnection as any,
+    defaultJobOptions: {
+        removeOnComplete: 1000,
+        removeOnFail: 5000
+    }
 });
