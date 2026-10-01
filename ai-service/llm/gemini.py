@@ -14,16 +14,18 @@ class GeminiProvider(BaseLLMProvider):
         self.model_id = 'gemini-2.5-flash' 
 
     async def generate_match_report(self, jd_text: str, resume_text: str) -> MatchReport:
-        prompt = f"""
+        system_instruction = """
         You are an expert technical recruiter system. Compare the following Resume to the Job Description.
         You must output EXACTLY a valid JSON object with the following schema:
-        {{
+        {
             "fit_score": <int between 0 and 10>,
             "matched_skills": [<list of matching skill strings>],
             "missing_skills": [<list of crucial missing skill strings>],
             "summary": "<a one-sentence explanation of the score>"
-        }}
+        }
+        """
 
+        prompt = f"""
         Job Description:
         {jd_text}
 
@@ -37,6 +39,7 @@ class GeminiProvider(BaseLLMProvider):
                 model=self.model_id,
                 contents=prompt,
                 config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
                     response_mime_type="application/json",
                     temperature=0.2, # low temperature for more deterministic/analytical results
                 )
