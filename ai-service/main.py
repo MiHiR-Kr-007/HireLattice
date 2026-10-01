@@ -12,7 +12,7 @@ from rag.db import DatabaseManager
 async def lifespan(app: FastAPI):
     db = DatabaseManager()
     try:
-        db.init_db()
+        await db.init_db()
     except Exception:
         print("WARNING: Database connection failed during startup. Ensure PostgreSQL container is running.")
     yield

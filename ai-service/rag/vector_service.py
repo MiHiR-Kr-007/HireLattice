@@ -1,5 +1,5 @@
 import logging
-from pgvector.psycopg2 import register_vector
+from pgvector.asyncpg import register_vector
 from rag.db import DatabaseManager
 from llm.embeddings import GeminiEmbeddingProvider
 
@@ -17,30 +17,23 @@ class VectorService:
             logger.error(f"Could not store job {job_id} because embedding generation failed.")
             return False
 
-        conn = None
         try:
-            conn = self.db_manager.get_connection()
-            register_vector(conn) 
-            
-            with conn.cursor() as cursor:
-                cursor.execute("""
+            pool = await self.db_manager.get_pool()
+            async with pool.acquire() as conn:
+                await register_vector(conn)
+                
+                await conn.execute("""
                     INSERT INTO job_embeddings (job_id, job_description, embedding)
-                    VALUES (%s, %s, %s::vector)
+                    VALUES ($1, $2, $3::vector)
                     ON CONFLICT (job_id) 
                     DO UPDATE SET job_description = EXCLUDED.job_description, embedding = EXCLUDED.embedding;
-                """, (job_id, job_description, embedding))
-                conn.commit()
+                """, job_id, job_description, embedding)
                 logger.info(f"Successfully stored vector embeddings for Job ID: {job_id}")
                 return True
                 
         except Exception as e:
-            if conn:
-                conn.rollback()
             logger.error(f"Failed to persist job embedding to database: {str(e)}")
             return False
-        finally:
-            if conn:
-                conn.close()
 
     async def find_similar_jobs(self, resume_text: str, limit: int = 3):
         " a similarity search against stored JDs using cosine distance"
@@ -48,28 +41,23 @@ class VectorService:
         if not embedding:
             return []
 
-        conn = None
         try:
-            conn = self.db_manager.get_connection()
-            register_vector(conn)
-            
-            with conn.cursor() as cursor:
-                # calculate (1 - cosine_distance) to convert distance to a similarity percentage match
-                cursor.execute("""
-                    SELECT job_id, job_description, (1 - (embedding <=> %s::vector)) AS similarity_score
-                    FROM job_embeddings
-                    ORDER BY embedding <=> %s::vector
-                    LIMIT %s;
-                """, (embedding, embedding, limit))
+            pool = await self.db_manager.get_pool()
+            async with pool.acquire() as conn:
+                await register_vector(conn)
                 
-                results = cursor.fetchall()
+                # calculate (1 - cosine_distance) to convert distance to a similarity percentage match
+                results = await conn.fetch("""
+                    SELECT job_id, job_description, (1 - (embedding <=> $1::vector)) AS similarity_score
+                    FROM job_embeddings
+                    ORDER BY embedding <=> $1::vector
+                    LIMIT $2;
+                """, embedding, limit)
+                
                 return [
-                    {"job_id": row[0], "job_description": row[1], "similarity": float(row[2])}
+                    {"job_id": row['job_id'], "job_description": row['job_description'], "similarity": float(row['similarity_score'])}
                     for row in results
                 ]
         except Exception as e:
             logger.error(f"Semantic similarity search failed: {str(e)}")
             return []
-        finally:
-            if conn:
-                conn.close()

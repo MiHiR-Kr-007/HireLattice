@@ -1,11 +1,12 @@
 import os
 import logging
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import asyncpg
 
 logger = logging.getLogger(__name__)
 
 class DatabaseManager:
+    _pool = None
+
     def __init__(self):
         self.host = os.getenv("DB_HOST", "localhost")
         self.port = os.getenv("DB_PORT", "5432")
@@ -13,33 +14,32 @@ class DatabaseManager:
         self.password = os.getenv("DB_PASSWORD", "password")
         self.dbname = os.getenv("DB_NAME", "hirelattice_db")
 
-    def get_connection(self):
-        try:
-            conn = psycopg2.connect(
-                host=self.host,
-                port=self.port,
-                user=self.user,
-                password=self.password,
-                dbname=self.dbname
-            )
-            return conn
-        except Exception as e:
-            logger.error(f"Database connection failed: {str(e)}")
-            raise e
+    async def get_pool(self):
+        if self.__class__._pool is None:
+            try:
+                self.__class__._pool = await asyncpg.create_pool(
+                    host=self.host,
+                    port=self.port,
+                    user=self.user,
+                    password=self.password,
+                    database=self.dbname,
+                    min_size=1,
+                    max_size=10
+                )
+            except Exception as e:
+                logger.error(f"Database pool creation failed: {str(e)}")
+                raise e
+        return self.__class__._pool
 
-    def init_db(self):
-        conn = None
+    async def init_db(self):
         try:
-            conn = self.get_connection()
-            conn.autocommit = True
-            with conn.cursor() as cursor:
-                cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+            pool = await self.get_pool()
+            async with pool.acquire() as conn:
+                await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
                 logger.info("pgvector extension verified/created.")
 
-            conn.autocommit = False
-            with conn.cursor() as cursor:
                 # Gemini text-embedding-004 model outputs vectors of dimension 768
-                cursor.execute("""
+                await conn.execute("""
                     CREATE TABLE IF NOT EXISTS job_embeddings (
                         id SERIAL PRIMARY KEY,
                         job_id VARCHAR(255) UNIQUE NOT NULL,
@@ -50,18 +50,13 @@ class DatabaseManager:
                 """)
                 
                 # create an HNSW index to optimize vector similarity searches in production
-                cursor.execute("""
+                await conn.execute("""
                     CREATE INDEX IF NOT EXISTS job_embeddings_hnsw_idx 
                     ON job_embeddings USING hnsw (embedding vector_cosine_ops);
                 """)
                 
-                conn.commit()
                 logger.info("Database tables and HNSW vector indexes successfully initialized.")
                 
         except Exception as e:
-            if conn:
-                conn.rollback()
             logger.critical(f"Failed to initialize database schema: {str(e)}")
-        finally:
-            if conn:
-                conn.close()
+            raise e
