@@ -1,12 +1,80 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../shared/redis.js';
-import { NotificationJobData } from '../queues/notification.queue.js';
+import { NotificationJobData, notificationQueue } from '../queues/notification.queue.js';
 import { sendEmail } from '../shared/mailer.js';
+import { calendarService } from '../shared/calendar.service.js';
+import { pool } from '../shared/db.js';
 
 export const notificationWorker = new Worker<NotificationJobData>(
     'notification-queue',
     async (job: Job<NotificationJobData>) => {
-        const { type, candidateName, candidateEmail, decision, rejectionReason, interviewerName, startTime, meetLink } = job.data;
+        const { type, candidateName, candidateEmail, decision, rejectionReason, interviewerName, startTime, meetLink, candidateId, slotId, interviewerEmail, endTime, jobTitle, googleRefreshToken } = job.data;
+
+        if (type === 'CALENDAR_SYNC') {
+            console.log(`[Notification Worker] Processing CALENDAR_SYNC for ${candidateName}`);
+            
+            let finalMeetLink = 'Link will be provided soon';
+            
+            try {
+                const { meetLink: genMeetLink, eventId } = await calendarService.createInterviewEvent(
+                    candidateEmail,
+                    interviewerEmail!,
+                    new Date(startTime!),
+                    new Date(endTime!),
+                    jobTitle!,
+                    googleRefreshToken
+                );
+                
+                if (genMeetLink || eventId) {
+                    await pool.query(
+                        'UPDATE interviews SET meet_link = $1, google_event_id = $2 WHERE slot_id = $3 AND candidate_id = $4', 
+                        [genMeetLink, eventId, slotId, candidateId]
+                    );
+                    if (genMeetLink) finalMeetLink = genMeetLink;
+                }
+            } catch (err) {
+                console.error('[Notification Worker] Google Calendar API failed, but proceeding to send emails', err);
+                throw err; // BullMQ will retry this entire job with exponential backoff
+            }
+
+            // Enqueue Immediate Confirmation Email
+            await notificationQueue.add('interview-confirmed', {
+                type: 'INTERVIEW_CONFIRMED',
+                candidateName,
+                candidateEmail,
+                interviewerName,
+                startTime,
+                meetLink: finalMeetLink
+            });
+
+            const startTimeMs = new Date(startTime!).getTime();
+            const nowMs = Date.now();
+            const oneHourMs = 60 * 60 * 1000;
+            const tenMinMs = 10 * 60 * 1000;
+
+            if (startTimeMs - oneHourMs > nowMs) {
+                await notificationQueue.add('interview-reminder-1hr', {
+                    type: 'INTERVIEW_REMINDER',
+                    candidateName,
+                    candidateEmail,
+                    interviewerName,
+                    startTime,
+                    meetLink: finalMeetLink
+                }, { delay: startTimeMs - oneHourMs - nowMs });
+            }
+
+            if (startTimeMs - tenMinMs > nowMs) {
+                await notificationQueue.add('interview-reminder-10min', {
+                    type: 'INTERVIEW_REMINDER',
+                    candidateName,
+                    candidateEmail,
+                    interviewerName,
+                    startTime,
+                    meetLink: finalMeetLink
+                }, { delay: startTimeMs - tenMinMs - nowMs });
+            }
+            return;
+        }
 
         console.log(`[Notification Worker] Processing ${type} email for ${candidateName} (${candidateEmail})`);
 
